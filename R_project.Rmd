@@ -1,0 +1,78 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+raw_data <- read.csv('PruebasSaber_2021_12.csv')
+head(raw_data)
+```
+```{r}
+colnames(data)
+```
+
+```{r}
+plot(raw_data$X, raw_data$P_Puntaje_)
+plot(raw_data$Y, raw_data$P_Puntaje_)
+```
+```{r}
+# Per GENERO
+# 5 Mixto
+# 1 femmine
+# 3 maschi
+
+unique(raw_data$Categoria)
+
+sum(raw_data$CLASE_TIPO == 1)
+
+max(raw_data$P_Puntaje_)
+```
+
+```{r}
+# Calendario
+# 1 : A (gennaio)
+# 3 : B (agosto)
+# 2 : entrambi
+# 5 : ?
+
+# Sector
+# 1 : No oficial
+# 2 : Oficial
+
+# COD_LOCA
+# Codificazione delle zone della città
+
+# CLASE_TIPO
+# 1 : comunale
+# 2 : comunale
+# 6 : privato
+# 4 : privato
+# 3 : comunale (essercito)
+# 5 : privato
+
+# Categoria
+# 0 : non applica
+# 1 : A+
+# 2 : A
+# 3 : B
+# 4 : C
+# 5 : D
+```
+
+```{r}
+data2 <- cbind(raw_data$COLEGIO_SE, raw_data$Categoria)
+```
+
+```{r}
+# Objectives:
+# Understand the spatial dependence of schools with the students tests' scores
+# Analyise if there is a difference between schools' categories
+# 
+
+# Workflow:
+# Data exploration (boxplots, outliers)
+# Nonparametric tests for differences between schools
+# Regression (coordinates, numero di studenti, ...) -> prediction
+```
+
