@@ -1,5 +1,5 @@
 ### PROGETTO NONPARAMETRICA
-rm(list=ls()
+rm(list=ls())
 
 # CAMBIARE LA WORKING DIRECTORY!
 setwd("C:/Users/HP/Desktop/Progetto Nonpa")
