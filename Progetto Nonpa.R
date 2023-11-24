@@ -1,6 +1,12 @@
 ### PROGETTO NONPARAMETRICA
+
+
+
 # CAMBIARE LA WORKING DIRECTORY!
 setwd("C:/Users/HP/Desktop/Progetto Nonpa")
+
+# install libraries
+#install.packages(c("sf", "ggplot2"))
 
 raw_data <- read.csv('PruebasSaber_2021_12.csv')
 head(raw_data)
@@ -62,17 +68,17 @@ data <- raw_data[-c(4,5,6)]
 
 #--------------------------------------------------------------------------
 #Provo a disegnare mappa di Bogotà + plot dei punti dove sono situate le scuole 
-#Trovare shapefiles and geojson files. una cosa carina da fare è plottare la città di bogotà ed evidenziare con dei puntini le scuole.
-#Problema: non so in che formato sono scritte le coordinate!!!!
+#Carino plottare la città di bogotà ed evidenziare con dei puntini le scuole.
 
-#install.packages(c("sf", "ggplot2"))
 library(sf)
 library(ggplot2)
 
 # Import a geojson or shapefile
-map <- read_sf("map.geojson")
-ggplot(map) +
-  geom_sf(fill = "white")
+map <- read_sf("map.geojson") 
+# potrebbero non essere sufficienti, perché ci sono scuole fuori dal confine della mappa
+bogota.map <- ggplot(map) +
+                geom_sf(fill = "white")
+bogota.map
 
 x <- data$X
 y <- data$Y   
@@ -92,6 +98,36 @@ coord <- convert_to_wgs84(data$X, data$Y)
 
 # Sostituisco al quello che abbiamo
 data <- cbind(data.frame(coord), data[,-c(1,2)])
+
+# PLOT OF SCHOOLS
+final_map <- bogota.map +
+  geom_point(data = as.data.frame(coord), aes(x = X, y = Y), 
+             color = "red", size = 0.1)
+final_map
+
+# PLOT OF SCHOOLS ACCORDING TO A FACTOR
+
+plot.factor <- function(factor){
+  # funzione per plottare scuole in base a qualche variabile categorica di interesse
+  # si suppone di avere bogota.map (List) e coord un array di due colonne contenente coordinate
+  # nel formato long/lat
+  # factor must be cast as a categorical variable (DOBBIAMO SISTEMARE STA COSA NEL DATASET!)
+  # MI ASPETTO IN INGRESSO UNA COSA DEL TIPO data$factor
+  
+  col.ramp <- rainbow(unique(factor)) #number of categories
+  n <- dim(data)[1]
+  col.lab <- rep(NA, n)
+  for(i in 1:n)
+    col.lab[i] = col.ramp[which(factor[i] == levels(factor))]
+  
+  final_map <- bogota.map +
+    geom_point(data = as.data.frame(coord), aes(x = X, y = Y), 
+               color = col.lab, size = 0.1)
+  final_map
+} #funziona, ma come faccio ad aggiungere la legenda?
+
+data$GENERO<- factor(data$GENERO, levels = c("1", "3", "5"))
+plot.factor(data$GENERO)
 
 #-------------------------------------------------------------------------------
 # Some plots
