@@ -16,9 +16,9 @@ plot(raw_data$Y, raw_data$P_Puntaje_)
 plot(raw_data$X, raw_data$Y) # plot of the coordinates (vorrei fare una cosa 
                              # più carina)
 
-#Remove some useless columns
-unique(raw_data$Fecha) # there is only one date --> remove it
-data <- raw_data[-c(4,5,6)]
+#Keep only variables of interest
+indexes=c(1,2,8,9,11,12,13,14,15,16,17,18,19,21,64)
+data <- raw_data[,indexes]
 
 # There are some categorical variables encoded with some numbers:
 # GENERO (scuola maschile/femminile/mista): 
