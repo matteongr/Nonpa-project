@@ -1,0 +1,40 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(aplpack)
+```
+
+```{r}
+
+data_prova <- data[,c(3, 5, 6, 7, 8, 9)]
+#3, 5:9
+
+ind_outlying_obs <- c()
+for (i in 1:5){
+  for (j in ((i+1):6)){
+    x <- data_prova[, i] + rnorm(dim(data_prova)[1], 0, 0.5)
+    y <- data_prova[, j] + rnorm(dim(data_prova)[1], 0, 0.5)
+    df_i <- cbind(x, y)
+    bagplot_i <- bagplot(df_i)
+    outliers_i <- bagplot_i$pxy.outlier
+    indx_i <- which(apply(df_i,1,function(x) all(x %in% outliers_i)))
+    ind_outlying_obs <- append(ind_outlying_obs, indx_i)
+  }
+}
+
+#bagplot_matrix <- aplpack::bagplot.pairs(df_3)
+```
+```{r}
+table_out <- table(ind_outlying_obs)
+sort(table_out)
+```
+
+871: 4 students very bad results in general
+253: 18 students good results 
+732: british school, average results but very good in English
+865: 5 students bad results in general
+
+
