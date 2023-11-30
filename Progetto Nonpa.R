@@ -2,7 +2,9 @@
 rm(list=ls())
 
 # CAMBIARE LA WORKING DIRECTORY!
-setwd("C:/Users/HP/Desktop/Progetto Nonpa")
+# VEDERE SE QUESTI COMANDI FUNZIONANO AUTOMATICAMENTE
+setwd(getwd())
+# setwd("C:/Users/HP/Desktop/Progetto Nonpa") --> da settare manualmente
 
 # install libraries
 #install.packages(c("sf", "ggplot2"))
