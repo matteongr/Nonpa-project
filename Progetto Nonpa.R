@@ -7,7 +7,7 @@ setwd(getwd())
 # setwd("C:/Users/HP/Desktop/Progetto Nonpa") --> da settare manualmente
 
 # install libraries
-#install.packages(c("sf", "ggplot2"))
+#install.packages(c("sf", "ggplot2", "readr"))
 
 raw_data <- read.csv('PruebasSaber_2021_12.csv')
 head(raw_data)
@@ -100,6 +100,20 @@ coord <- convert_to_wgs84(data$X, data$Y)
 # Sostituisco al quello che abbiamo
 data <- cbind(data.frame(coord), data[,-c(1,2)])
 
+bbox <- st_bbox(map) # vedo quali sono le scuole fuori dal range del file geojson
+xmin <- as.numeric(bbox[1])
+xmax <- as.numeric(bbox[3])
+ymin <- as.numeric(bbox[2])
+ymax <- as.numeric(bbox[4])
+
+# RICORDATI CHE STAI SOVRASCRIVENDO QUA DELLA ROBA, STAI TOGLIENDO DEGLI OUTLIERS "SPAZIALI"
+# CHE SONO FUORI DAI CONFINI DEL FILE DI GEOJSON --> stiamo levando osservazioni a caso, just per avere plot carini
+data <- subset(data, X>=xmin & X<= xmax & Y>=ymin & Y<= ymax)
+coord <- as.matrix(data[,1:2])
+
+library(readr)
+write_csv(data, "data.csv") #save "clean" dataset
+
 # PLOT OF SCHOOLS
 final_map <- bogota.map +
   geom_point(data = as.data.frame(coord), aes(x = X, y = Y), 
@@ -129,7 +143,3 @@ plot.factor <- function(factor){
 
 data$GENERO<- factor(data$GENERO, levels = c("1", "3", "5"))
 plot.factor(data$GENERO)
-
-#-------------------------------------------------------------------------------
-# Some plots
-
