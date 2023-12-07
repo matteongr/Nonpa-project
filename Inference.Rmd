@@ -3,6 +3,10 @@ title: "R Notebook"
 output: html_notebook
 ---
 
+```{r}
+data <- read.csv("Extended_data_clean.csv", header = T)
+```
+
 
 ```{r}
 ###
@@ -35,6 +39,11 @@ perm_t_test=function(x,y,iter=1e3){
 ```
 
 ```{r}
+###
+# Test to see if scores are different for each CALENDARIO
+###
+
+
 x1 <- data$P_Puntaje_[which(data$CALENDARIO == 1)]
 x2 <- data$P_Puntaje_[which(data$CALENDARIO == 3)]
 
@@ -63,7 +72,12 @@ median(x2)
 With this test we confirm that the median score of students from Calendario B schools is higher than Calendario A.
 
 
+
 ```{r}
+###
+# Test to see if there are difference in the scores according to the zone (COD_LOCA)
+###
+
 table(data$COD_LOCA)
 ```
 
@@ -111,7 +125,88 @@ p_val
 ```
 
 ```{r}
+g = length(unique(data$COD_LOCA))
 plot(LOC, scores, xlab='treat',col=rainbow(g),main='Original Data')
 ```
+
+There is statistical evidence to assure that there is a difference in the scores of schools from different zones.
+
+```{r}
+###
+# Nonparametric regression to see if EVALUADOS influences the scores
+###
+
+Y = data$P_Puntaje_
+X = data$EVALUADOS
+
+result <- lm(Y ~ X)
+summary(result)
+```
+
+```{r}
+# The hypothesis of an ordinary linear model are not met
+shapiro.test(result$residuals)$p
+```
+
+```{r}
+T0_glob <- summary(result)$f[1]
+T0_glob
+```
+
+```{r}
+T_H0glob <- numeric(B)
+
+for(perm in 1:B){
+  permutation <- sample(n)
+  
+  Y.perm.glob <- Y[permutation]
+  T_H0glob[perm] <- summary(lm(Y.perm.glob ~ X))$f[1]
+}
+
+sum(T_H0glob>=T0_glob)/B
+```
+
+The number of students in the school influences in the scores of the test.
+
+```{r}
+plot(data$EVALUADOS, data$P_Puntaje_)
+grid <- seq(0, 500, by = 0.1)
+lines(grid, result$coefficients[[1]] + result$coefficients[[2]]*grid, col = "red")
+
+```
+
+We can see that the effect is low and not linear in any case.
+
+
+```{r}
+###
+# Rank test to see if CLASE_TIPO (private vs public) scores are different
+###
+
+# x.1 public
+# x.2 private
+
+x.1 <- data$P_Puntaje_[which(data$CLASE_TIPO %in% c(1,2,3))]
+x.2 <- data$P_Puntaje_[which(data$CLASE_TIPO %in% c(4,5,6))]
+
+alpha <- 0.05
+wilcox.test(x.1,y=x.2, paired=F, conf.level = 1-alpha)$p.value
+
+```
+
+```{r}
+alpha <- 0.05
+wilcox.test(x.1,y=x.2, paired=F, conf.level = 1-alpha, alternative = "less")$p.value
+```
+We can confirm that scores of public and private schools are different
+
+
+```{r}
+boxplot(x.1, x.2)
+```
+We can confirm that the private school perform better than the public ones.
+
+
+
 
 
