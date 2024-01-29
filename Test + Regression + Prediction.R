@@ -9,6 +9,8 @@ quantile(data$EVALUADOS,probs=c(0.25,0.5,0.75))
 small_schools = data[which(data$EVALUADOS<=100),]
 big_schools = data[which(data$EVALUADOS>100),]
 
+set.seed(123)
+
 perm_t_test=function(x,y,iter=1e3){
   
   T0=abs(mean(x)-mean(y))  # define the test statistic
@@ -155,6 +157,8 @@ library(hexbin)
 library(aplpack)
 library(robustbase)
 library(MDBED)
+library(pbapply)
+library(parallel)
 
 
 wrapper_multi_conf = function(test_point) {
@@ -164,8 +168,12 @@ wrapper_multi_conf = function(test_point) {
   sum(depth_surface_vec[-1] >= depth_surface_vec[1]) / (n + 1)
 }
 
+#codice parallelizzato
+cl=makeCluster(parallel::detectCores())
+clusterExport(cl=cl,list('data_predict', 'depthMedian', 'n'))
 
-pval_surf = pbapply(xy_surface, 1, wrapper_multi_conf)
+
+pval_surf = pbapply(xy_surface, 1, wrapper_multi_conf, cl=cl)
 data_plot = cbind(pval_surf, xy_surface)
 p_set = xy_surface[pval_surf > alpha, ]
 poly_points = p_set[chull(p_set), ]
@@ -180,20 +188,110 @@ ggplot() +
     alpha = 0.01
   )
 
-#IDEA: PREDICTION: let's suppose the major plans to build a new, big school (e.g 150 students)
-#He has 2 ideas
-#one in the "centre" #(take the medians of the coordinates)
-#one far away from the centre (e.g max of Y?)
-#how will the schools perform?
-new_school <- data.frame(X=median(data$X), Y=median(data$Y), EVALUADOS=150)
+stopCluster(cl)
+
+
+
+#ho trovato un dataset con le densita di popolazione di tutta la colombia
+#l'ho ristretto a bogota, ma non è abbastanza preciso da darmi una variabilità evidente
+#infatti mi dice che la densita di popolazione è uguale in tutta bogota
+#quindi l'idea di provare a fare una scuola dove c'è piu popolazione e una dove ce n'è meno non si può fare
+
+density <- read_csv("col_general_2020.csv")
+
+head(density)
+
+summary(density)
+
+library(dplyr)
+library(ggplot2)
+library(sf)
+
+# Your data filtering
+density_bogota_filt <- density %>%
+  filter(latitude >= 4.45 & latitude <= 4.80 & longitude >= -74.23 & longitude <= -74)
+
+#10000 points
+density_bogota_filt <- density_bogota_filt[sample(nrow(density_bogota_filt), 10000), ]
+
+# Adjusted color scale
+ggplot(density_bogota_filt, aes(x = longitude, y = latitude, fill = col_general_2020)) +
+  geom_point(shape = 21, size = 2) +
+  scale_fill_viridis_c() +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+
+
+# prediction con 25 evaluados e diverse location
+#ho scelto 25 evaluados perche possiamo dire che il sindaco voleva creare una scuola di eccellenze
+#e come abbiamo visto le scuole piccole vanno meglio
+#ora proviamo a posizionare la scuola in qualche zona random e vediamo come performa
+
+# Calculate the median of X and Y coordinates
+median_x <- median(data$X)
+median_y <- median(data$Y)
+
+# Create a data frame for the median point
+median_point <- data.frame(X = median_x, Y = median_y)
+
+new_school_median <- data.frame(X=median_x, Y=median_y, EVALUADOS=25)
 
 #use fitted model to predict the response value for the new observation
-predict(full_model_gam_inter, newdata=new_school)
-#276, not bad
+predict(full_model_gam_inter, newdata=new_school_median)
 
-#It would be interesting to plot the point into the map, can you do it??
 
-#far_school = ? (#I have no idea of which coordinates I should insert)
+#est point
+est_x <- -74.19
+est_y <- 4.62
+
+# Create a data frame for the est point
+est_point <- data.frame(X = est_x, Y = est_y)
+
+new_school_est <- data.frame(X=est_x, Y=est_y, EVALUADOS=25)
+
+#predict for the est point
+predict(full_model_gam_inter, newdata=new_school_est)
+
+#sud point
+sud_x <- -74.11
+sud_y <- 4.48
+
+# Create a data frame for the sud point
+sud_point <- data.frame(X = sud_x, Y = sud_y)
+
+new_school_sud <- data.frame(X=sud_x, Y=sud_y, EVALUADOS=25)
+
+#predict for the sud point
+predict(full_model_gam_inter, newdata=new_school_sud)
+
+# nord point
+nord_x <- -74.07
+nord_y <- 4.75
+
+# Create a data frame for the nord point
+nord_point <- data.frame(X = nord_x, Y = nord_y)
+
+new_school_nord <- data.frame(X=nord_x, Y=nord_y, EVALUADOS=25)
+
+#predict for the nord point
+predict(full_model_gam_inter, newdata=new_school_nord)
+
+# Add the points to the final map
+final_map_with_median <- final_map +
+  geom_point(data = as.data.frame(coord), aes(x = X, y = Y), color = "blue", size = 0.1) +
+  geom_point(data = median_point, aes(x = X, y = Y), color = "red", size = 2) + 
+  geom_point(data = est_point, aes(x = X, y = Y), color = "green", size = 2) +
+  geom_point(data = sud_point, aes(x = X, y = Y), color = "yellow", size = 2) +
+  geom_point(data = nord_point, aes(x = X, y = Y), color = "orange", size = 2)
+
+
+# Display the final map
+final_map_with_median
+
+
+#con questo abbiamo visto che a nord andrebbe meglio
+
 
 
 #SOME ROBUST METHODS??? In my opinion it's useless
