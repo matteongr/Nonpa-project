@@ -3,11 +3,10 @@ title: "R Notebook"
 output: html_notebook
 ---
 
-```{r}
-library(aplpack)
-```
 
 ```{r}
+library(aplpack)
+
 
 data_prova <- data[,c(3, 5:9)]
 set.seed(2024)
@@ -29,10 +28,14 @@ for (i in 1:5){
 ```
 
 
+
+
 ```{r}
 table_out <- table(ind_outlying_obs)
 sort(table_out)
 ```
+
+
 
 ```{r}
 sorted_table <- sort(table_out, decreasing = TRUE)
@@ -82,6 +85,5 @@ for (i in 1:5) {
   }
 }
 ```
-
 
 

@@ -126,7 +126,7 @@ p_val
 
 ```{r}
 g = length(unique(data$COD_LOCA))
-plot(LOC, scores, xlab='treat',col=rainbow(g),main='Original Data')
+plot(scores ~ LOC, xlab='treat', col=rainbow(length(levels(LOC))), main='Original Data')
 ```
 
 There is statistical evidence to assure that there is a difference in the scores of schools from different zones.

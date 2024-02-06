@@ -205,3 +205,4 @@ plot.factor.cod_loca <- function(factor){
 
 data$COD_LOCA <- factor(data$COD_LOCA)
 plot.factor.cod_loca(data$COD_LOCA)
+
