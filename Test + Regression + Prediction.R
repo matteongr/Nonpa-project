@@ -277,13 +277,14 @@ new_school_nord <- data.frame(X=nord_x, Y=nord_y, EVALUADOS=25)
 #predict for the nord point
 predict(full_model_gam_inter, newdata=new_school_nord)
 
+
 # Add the points to the final map
-final_map_with_median <- final_map +
-  geom_point(data = as.data.frame(coord), aes(x = X, y = Y), color = "blue", size = 0.1) +
-  geom_point(data = median_point, aes(x = X, y = Y), color = "red", size = 2) + 
-  geom_point(data = est_point, aes(x = X, y = Y), color = "green", size = 2) +
-  geom_point(data = sud_point, aes(x = X, y = Y), color = "yellow", size = 2) +
-  geom_point(data = nord_point, aes(x = X, y = Y), color = "orange", size = 2)
+final_map_with_median <- bogota.map +
+  geom_point(data = as.data.frame(coord), aes(x = X, y = Y), color = "gray", size = 0.1) +
+  geom_point(data = median_point, aes(x = X, y = Y), color = "yellow", size = 3) + 
+  geom_point(data = est_point, aes(x = X, y = Y), color = "orange", size = 3) +
+  geom_point(data = sud_point, aes(x = X, y = Y), color = "red", size = 3) +
+  geom_point(data = nord_point, aes(x = X, y = Y), color = "green", size = 3)
 
 
 # Display the final map
@@ -293,5 +294,10 @@ final_map_with_median
 #con questo abbiamo visto che a nord andrebbe meglio
 
 
-
-#SOME ROBUST METHODS??? In my opinion it's useless
+# new map with the population density
+# Import a geojson or shapefile
+plob <- read_sf("poblacion-upz-bogota.geojson") 
+# potrebbero non essere sufficienti, perché ci sono scuole fuori dal confine della mappa
+bogota.plob.map <- ggplot(plob) +
+  geom_sf(fill = "white")
+bogota.plob.map

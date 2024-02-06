@@ -3,11 +3,8 @@ rm(list=ls())
 
 # CAMBIARE LA WORKING DIRECTORY!
 # VEDERE SE QUESTI COMANDI FUNZIONANO AUTOMATICAMENTE
-setwd(getwd())
-# setwd("C:/Users/HP/Desktop/Progetto Nonpa") --> da settare manualmente
+setwd("C:/Users/lucat/OneDrive - Politecnico di Milano/Documenti/universita/HPC/corsi/nonparametric statistics/Project/Nonpa-project")
 
-# install libraries
-#install.packages(c("sf", "ggplot2", "readr"))
 
 raw_data <- read.csv('PruebasSaber_2021_12.csv')
 head(raw_data)
@@ -43,7 +40,7 @@ data <- raw_data[,indexes]
 # 2 : comunale
 # 6 : privato
 # 4 : privato
-# 3 : comunale (essercito)
+# 3 : comunale (esercito)
 # 5 : privato
 
 # Categoria
@@ -117,29 +114,94 @@ write_csv(data, "data.csv") #save "clean" dataset
 # PLOT OF SCHOOLS
 final_map <- bogota.map +
   geom_point(data = as.data.frame(coord), aes(x = X, y = Y), 
-             color = "red", size = 0.1)
+             color = "red", size = 1)
 final_map
 
 # PLOT OF SCHOOLS ACCORDING TO A FACTOR
 
-plot.factor <- function(factor){
-  # funzione per plottare scuole in base a qualche variabile categorica di interesse
-  # si suppone di avere bogota.map (List) e coord un array di due colonne contenente coordinate
-  # nel formato long/lat
-  # factor must be cast as a categorical variable (DOBBIAMO SISTEMARE STA COSA NEL DATASET!)
-  # MI ASPETTO IN INGRESSO UNA COSA DEL TIPO data$factor
+
+plot.factor.genero <- function(factor){
+  # Create a color palette based on the unique levels of the factor
+  col.ramp <- rainbow(length(levels(factor)))
   
-  col.ramp <- rainbow(unique(factor)) #number of categories
-  n <- dim(data)[1]
-  col.lab <- rep(NA, n)
-  for(i in 1:n)
-    col.lab[i] = col.ramp[which(factor[i] == levels(factor))]
+  # Create a named vector of colors for each level of the factor
+  col.lab <- setNames(col.ramp, levels(factor))
+  
+  # Create a named vector of labels for each level of the factor
+  label_lab <- setNames(c("female", "male", "mixed"), c("1", "3", "5"))  # Assigning labels
   
   final_map <- bogota.map +
-    geom_point(data = as.data.frame(coord), aes(x = X, y = Y), 
-               color = col.lab, size = 0.1)
+    geom_point(data = as.data.frame(coord), aes(x = X, y = Y, color = factor), size = 1) +
+    scale_color_manual(name = "GENERO", values = col.lab, labels = label_lab) # Specify labels
+  
   final_map
-} #funziona, ma come faccio ad aggiungere la legenda?
+}
 
-data$GENERO<- factor(data$GENERO, levels = c("1", "3", "5"))
-plot.factor(data$GENERO)
+data$GENERO <- factor(data$GENERO, levels = c("1", "3", "5")) 
+plot.factor.genero(data$GENERO)
+
+
+plot.factor.calendario <- function(factor){
+  # Create a color palette based on the unique levels of the factor
+  col.ramp <- rainbow(length(levels(factor)))
+  
+  # Create a named vector of colors for each level of the factor
+  col.lab <- setNames(col.ramp, levels(factor))
+  
+  # Create a named vector of labels for each level of the factor
+  label_lab <- setNames(c("A", "B", "both", "unknown"), c("1", "3", "2", "5"))  # Assigning labels
+  
+  final_map <- bogota.map +
+    geom_point(data = as.data.frame(coord), aes(x = X, y = Y, color = factor), size = 1) +
+    scale_color_manual(name = "CALENDARIO", values = col.lab, labels = label_lab) # Specify labels
+  
+  final_map
+}
+
+data$CALENDARIO <- factor(data$CALENDARIO, levels = c("1", "3", "2", "5")) 
+plot.factor.calendario(data$CALENDARIO)
+
+
+# Recode values in clase_tipo column
+data$CLASE_TIPO <- ifelse(data$CLASE_TIPO %in% c(1, 2, 3), 1, 3)
+
+# Print the updated data
+print(data)
+
+plot.factor.clase_tipo <- function(factor){
+  # Create a color palette based on the unique levels of the factor
+  col.ramp <- rainbow(length(levels(factor)))
+  
+  # Create a named vector of colors for each level of the factor
+  col.lab <- setNames(col.ramp, levels(factor))
+  
+  # Create a named vector of labels for each level of the factor
+  label_lab <- setNames(c("public", "private"), c("1", "3"))  # Assigning labels
+  
+  final_map <- bogota.map +
+    geom_point(data = as.data.frame(coord), aes(x = X, y = Y, color = factor), size = 1) +
+    scale_color_manual(name = "CLASE_TIPO", values = col.lab, labels = label_lab) # Specify labels
+  
+  final_map
+}
+
+data$CLASE_TIPO <- factor(data$CLASE_TIPO, levels = c("1", "3"))
+plot.factor.clase_tipo(data$CLASE_TIPO)
+
+
+
+plot.factor.cod_loca <- function(factor){
+  # Create a color palette based on the unique levels of the factor
+  col.ramp <- rainbow(length(levels(factor)))
+  
+  # Create a named vector of colors for each level of the factor
+  col.lab <- setNames(col.ramp, levels(factor))
+  
+  final_map <- bogota.map +
+    geom_point(data = as.data.frame(coord), aes(x = X, y = Y, color = factor), size = 1) +
+    scale_color_manual(name = "COD_LOCA", values = col.lab) # Specify labels
+  final_map
+}
+
+data$COD_LOCA <- factor(data$COD_LOCA)
+plot.factor.cod_loca(data$COD_LOCA)
