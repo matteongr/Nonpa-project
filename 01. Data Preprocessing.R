@@ -22,5 +22,11 @@ indexes=c(1,2,7,8,9,11,12,13,14,15,16,17,18,19,21,64)
 
 data <- raw_data[,indexes]
 
+######################################
+#               TO DO:               #
+#             add columns            #
+######################################
 
+library(readr)
+write_csv(data, "data.csv") #save "clean" dataset
 
