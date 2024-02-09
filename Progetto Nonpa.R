@@ -1,49 +1,55 @@
 ### PROGETTO NONPARAMETRICA
 rm(list = ls())
 
-# CAMBIARE LA WORKING DIRECTORY!
-# VEDERE SE QUESTI COMANDI FUNZIONANO AUTOMATICAMENTE
+# remember to change the working directory
 setwd(
   "C:/Users/lucat/OneDrive - Politecnico di Milano/Documenti/universita/HPC/corsi/nonparametric statistics/Project/Nonpa-project"
 )
-
 
 raw_data <- read.csv('PruebasSaber_2021_12.csv')
 head(raw_data)
 names <- colnames(raw_data)
 
-plot(raw_data$X, raw_data$P_Puntaje_)
-plot(raw_data$Y, raw_data$P_Puntaje_)
-plot(raw_data$X, raw_data$Y) # plot of the coordinates (vorrei fare una cosa
+# plot(raw_data$X, raw_data$P_Puntaje_)
+# plot(raw_data$Y, raw_data$P_Puntaje_)
+# plot(raw_data$X, raw_data$Y) # plot of the coordinates (vorrei fare una cosa
 # più carina)
 
 #Keep only variables of interest
-indexes = c(1, 2, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 64)
+indexes = c(1, 2, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 64)
 data <- raw_data[, indexes]
+# in particular these variables are
+# (1,2) --> latitude and longitude
+# 7 --> name of the school
+# 8 --> P_Puntaje_
+# 9 --> Number of graduates
+# (11,12,13,14,15) --> average grades of individual subjects
+# 16 --> Sector
+# 17 --> Calendario
+# 18 --> Genero
+# 19 --> Cod_loca
+# 21 --> Clase_Tipo
+# 64 --> Categoria
 
 # There are some categorical variables encoded with some numbers:
-# GENERO (scuola maschile/femminile/mista):
-# 1: female
-# 3: male
-# 5: misto
+# GENERO:
+# 1: all-girls school
+# 3: all-boys school
+# 5: mixed genders school
 
-# CALENDARIO (quando la scuola inizia)
-# 1: A(gennaio)
-# 3: B(agosto)
-# 2: entrambi
+# CALENDARIO (when the school begins)
+# 1: A (in January)
+# 3: B (in August)
+# 2: both
 # 5: ?
 
-# SECTOR (non mi ricordo cosa volesse dire)
-# 1: No oficial
-# 2: Oficial
+# SECTOR (which program does the school follow)
+# 1: Not official program
+# 2: Official program
 
 # CLASE_TIPO
-# 1 : comunale
-# 2 : comunale
-# 6 : privato
-# 4 : privato
-# 3 : comunale (esercito)
-# 5 : privato
+# 1,2,3: public school
+# 4,5,6: private school
 
 # Categoria
 # 0 : non applica
@@ -53,8 +59,8 @@ data <- raw_data[, indexes]
 # 4 : C
 # 5 : D
 
-# COD_LOCA
-# Codificazione delle zone della città
+# COD_LOCA: codes referring to one of the neighborhood in the city
+
 #-----------------------------------------------------------------------------
 # Objectives:
 # Understand the spatial dependence of schools with the students tests' scores
@@ -67,8 +73,10 @@ data <- raw_data[, indexes]
 # Regression (coordinates, numero di studenti, ...) -> prediction
 
 #--------------------------------------------------------------------------
-#Provo a disegnare mappa di Bogotà + plot dei punti dove sono situate le scuole
-#Carino plottare la città di bogotà ed evidenziare con dei puntini le scuole.
+# How are the schools located in the city of Bogotà?
+# We retrieved from a github repo the file .geojson in order to plot a nice plot
+# Superimposed to this plot we are plotting as dots the schools using the coordinates
+# Following up there is a function converting the raw coordinates into coordinates compatible with the .geojson file
 
 library(sf)
 library(ggplot2)
@@ -134,9 +142,7 @@ final_map <- bogota.map +
   )
 final_map
 
-# PLOT OF SCHOOLS ACCORDING TO A FACTOR
-
-
+# PLOT OF SCHOOLS ACCORDING TO A FACTOR (CUSTOMED FUNCTIONS)
 plot.factor.genero <- function(factor) {
   # Create a color palette based on the unique levels of the factor
   col.ramp <- rainbow(length(levels(factor)))
