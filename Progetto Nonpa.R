@@ -71,12 +71,7 @@ library(sf)
 library(ggplot2)
 
 # AGGIUNGERE MAPPA MACRO
-
-# Import a geojson or shapefile
-map <- read_sf("poblacion-upz-bogota.geojson")
-# potrebbero non essere sufficienti, perché ci sono scuole fuori dal confine della mappa
-bogota.map <- ggplot(map) +
-  geom_sf(fill = "white") + theme_void()
+map_macro <- read_sf("map.geojson")
 
 x <- data$X
 y <- data$Y
@@ -96,26 +91,56 @@ convert_to_wgs84 <- function(x, y) {
   return(lonlat)
 }
 
-coord <- convert_to_wgs84(data$X, data$Y)
+coord <- convert_to_wgs84(data$X, data$Y) # coordinates in degrees
 
-# Sostituisco al quello che abbiamo
+# Substitute
 data <- cbind(data.frame(coord), data[,-c(1, 2)])
 
-bbox <-
-  st_bbox(map) # vedo quali sono le scuole fuori dal range del file geojson
+
+# RICORDATI CHE STAI SOVRASCRIVENDO QUA DELLA ROBA, STAI TOGLIENDO DEGLI OUTLIERS "SPAZIALI"
+# CHE SONO FUORI DAI CONFINI DEL FILE DI GEOJSON 
+
+bbox <- st_bbox(map) # vedo quali sono le scuole fuori dal range del file geojson
 xmin <- as.numeric(bbox[1])
 xmax <- as.numeric(bbox[3])
 ymin <- as.numeric(bbox[2])
 ymax <- as.numeric(bbox[4])
 
-# RICORDATI CHE STAI SOVRASCRIVENDO QUA DELLA ROBA, STAI TOGLIENDO DEGLI OUTLIERS "SPAZIALI"
-# CHE SONO FUORI DAI CONFINI DEL FILE DI GEOJSON --> stiamo levando osservazioni a caso, just per avere plot carini
 data <- subset(data, X >= xmin & X <= xmax & Y >= ymin & Y <= ymax)
 coord <- as.matrix(data[, 1:2])
 
-library(readr)
-write_csv(data, "data.csv") #save "clean" dataset
+bogota.map <- ggplot(map_macro) +
+  geom_sf(fill = "white") + theme_void()
 
+final_map <- bogota.map +
+  geom_point(data = as.data.frame(coord), aes(x = X, y = Y, color= data$P_Puntaje_), size = 0.15)+
+  scale_color_gradient(low="red", high="green", name="Scores")+
+  theme(legend.position="right", axis.text.x = element_text(size = 7))
+final_map
+
+# We noticed some spatial dependence, so we would like to investigate further.
+# Localidades are too wide areas, then we would like to narrow them down --> UPZ CODES
+# In colegios.csv we have this information, which we ad to the dataset. 
+
+# ADD SOME SOCIO-ECONOMICAL VARIABLES (dropout rate--> per upz; estrato --> per school)
+# other plots of maps using UPZ codes + aggiungiamo density population by upz
+data_dropout <- read.csv('Desercion.csv') #dropout rate
+data_estrato <- read.csv('Colegios.csv') #estrato
+# data_density <- read.csv('poblacion-upz-bogota.xlsx') --> DA AGGIUNGERE EVENTUALMENTE
+
+# CODICE DA SEB 
+
+data_1 <- 
+library(readr)
+write_csv(data_1, "data_1.csv") #save "clean" dataset for first tests
+
+#-----------------------------------------------------------------------------
+# maps with narrower "grid"
+# Import a geojson or shapefile
+map <- read_sf("poblacion-upz-bogota.geojson")
+# potrebbero non essere sufficienti, perché ci sono scuole fuori dal confine della mappa
+bogota.map <- ggplot(map) +
+  geom_sf(fill = "white") + theme_void()
 
 bogota.map.density <- ggplot() +
   geom_sf(data = map, aes(fill = densidad_urbana)) +
@@ -123,17 +148,7 @@ bogota.map.density <- ggplot() +
   theme_void()
 bogota.map.density
 
-# PLOT OF SCHOOLS
-final_map <- bogota.map +
-  geom_point(
-    data = as.data.frame(coord),
-    aes(x = X, y = Y),
-    color = "red",
-    size = 1
-  )
-final_map
-
-# PLOT OF SCHOOLS ACCORDING TO A FACTOR (CUSTOMED FUNCTIONS)
+# PLOT OF SCHOOLS ACCORDING TO GENERO
 plot.factor.genero <- function(factor) {
   # Create a color palette based on the unique levels of the factor
   col.ramp <- rainbow(length(levels(factor)))
@@ -158,7 +173,7 @@ plot.factor.genero <- function(factor) {
 
 data$GENERO <- factor(data$GENERO, levels = c("1", "3", "5"))
 
-
+# PLOT OF SCHOOLS ACCORDING TO CALENDARIO
 plot.factor.calendario <- function(factor) {
   # Create a color palette based on the unique levels of the factor
   col.ramp <- rainbow(length(levels(factor)))
@@ -185,10 +200,9 @@ data$CALENDARIO <-
   factor(data$CALENDARIO, levels = c("1", "3", "2", "5"))
 
 
+# PLOT OF SCHOOLS ACCORDING TO MANAGEMENT TYPE (PUBLIC/PRIVATE)
 # Recode values in clase_tipo column
 data$CLASE_TIPO <- ifelse(data$CLASE_TIPO %in% c(1, 2, 3), 1, 3)
-
-
 
 plot.factor.clase_tipo <- function(factor) {
   # Create a color palette based on the unique levels of the factor
@@ -214,8 +228,7 @@ plot.factor.clase_tipo <- function(factor) {
 
 data$CLASE_TIPO <- factor(data$CLASE_TIPO, levels = c("1", "3"))
 
-
-
+# PLOT OF SCHOOLS ACCORDING TO LOCALIDAD (MACROSCOPIC AREAS)
 plot.factor.cod_loca <- function(factor) {
   # Create a color palette based on the unique levels of the factor
   col.ramp <- rainbow(length(levels(factor)))
@@ -231,7 +244,6 @@ plot.factor.cod_loca <- function(factor) {
   final_map
 }
 
-
 data$COD_LOCA <- factor(data$COD_LOCA)
 
 library(ggpubr)
@@ -244,13 +256,12 @@ ggarrange(
   nrow = 2
 )
 
+# END FIRST FILE 
 
-
+# BEGIN NEW FILE
 data_years <- read.csv("data_years.csv")
 final_data <-
   data_years[, c(2, 3, 73, 74, 9, 75, 10:19, 21, 64, 72)]
-
-
 
 # i tried to plot the change between years in puntaje for each school in different localidades
 
