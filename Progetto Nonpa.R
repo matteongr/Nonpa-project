@@ -100,7 +100,7 @@ convert_to_wgs84 <- function(x, y) {
 coord <- convert_to_wgs84(data$X, data$Y)
 
 # Sostituisco al quello che abbiamo
-data <- cbind(data.frame(coord), data[, -c(1, 2)])
+data <- cbind(data.frame(coord), data[,-c(1, 2)])
 
 bbox <-
   st_bbox(map) # vedo quali sono le scuole fuori dal range del file geojson
@@ -313,10 +313,10 @@ wilcox.test(diff_2021_2022, mu = 0, alternative = "two.sided")
 
 #most improved schools
 top_schools <-
-  final_data[order(diff_tot, decreasing = TRUE), ][1:20, ]
+  final_data[order(diff_tot, decreasing = TRUE),][1:20,]
 
 #most worsened schools
-bad_schools <- final_data[order(diff_tot, decreasing = F), ][1:20, ]
+bad_schools <- final_data[order(diff_tot, decreasing = F),][1:20,]
 
 
 # plot the change in puntaje for the most improved and worsened schools
@@ -355,7 +355,7 @@ for (i in 1:nrow(bad_schools)) {
         y = bad_schools[i, 3:6],
         col = rainbow(nrow(bad_schools))[i])
 }
-
+par(mfrow = c(1,1))
 
 
 #plot top schools and bad schools on the map with points big according to the difference in puntaje
@@ -399,11 +399,13 @@ upz_values <- numeric(nrow(data_years))
 for (i in 1:nrow(data_years)) {
   # Check if COD_DANE12 is in colegios$DANE12_EST
   if (data_years$COD_DANE12[i] %in% colegios$DANE12_EST) {
-    # If it is, get the corresponding COD_UPZ value
-    upz_values[i] <-
-      as.numeric(colegios$COD_UPZ[colegios$DANE12_EST == data_years$COD_DANE12[i]])
+    # If it is, get the index where the condition is true
+    idx <- which(colegios$DANE12_EST == data_years$COD_DANE12[i])
+    # Assign the corresponding COD_UPZ value to the correct index in upz_values
+    upz_values[i] <- as.numeric(colegios$COD_UPZ[idx])
   }
 }
+
 
 # Add the upz_values vector as a new column named "upz" to data_years
 data_years <- cbind(data_years, upz = upz_values)
@@ -470,20 +472,23 @@ plot(
 )
 for (i in 1:length(levels(data_years$upz))) {
   lines(x = years,
-         y = colMeans(final_data[data_years$upz == levels(data_years$upz)[i], 3:6]),
-         col = rainbow(length(levels(data_years$upz)))[i])
+        y = colMeans(final_data[data_years$upz == levels(data_years$upz)[i], 3:6]),
+        col = rainbow(length(levels(data_years$upz)))[i])
 }
 
 
 # plot in a map the schools where the means in puntaje per upz is the highest, with the size of the point depending on the average score
-upz_means <- aggregate(final_data[, 3:6], by = list(final_data$Upz), FUN = mean)
+upz_means <-
+  aggregate(final_data[, 3:6], by = list(final_data$Upz), FUN = mean)
 bogota.map +
-  geom_point(
-    data = final_data,
-    aes(x = X, y = Y, size = rowMeans(final_data[, 3:6]),
-        color = Upz),
-    alpha = 1
-  ) +
+  geom_point(data = final_data,
+             aes(
+               x = X,
+               y = Y,
+               size = rowMeans(final_data[, 3:6]),
+               color = Upz
+             ),
+             alpha = 1) +
   scale_size_continuous(name = "Average puntaje")
 
 # maybe there is a connection between upz and puntaje
@@ -491,14 +496,23 @@ bogota.map +
 upz_means <- cbind(upz_means, rowMeans(upz_means[, 2:5]))
 colnames(upz_means)[ncol(upz_means)] <- "Average_puntaje"
 colnames(upz_means)[1] <- "Upz"
-plot(upz_means[,1], upz_means[,6], xlab = "Upz", ylab = "Average puntaje", main = "Average puntaje per upz", pch = 19)
+plot(
+  upz_means[, 1],
+  upz_means[, 6],
+  xlab = "Upz",
+  ylab = "Average puntaje",
+  main = "Average puntaje per upz",
+  pch = 19
+)
 
 # spline interpolation
 library(splines)
-knots <- quantile(as.numeric(upz_means$Upz), probs = c(0.25, 0.5, 0.75))
-boundary_knots <- quantile(as.numeric(upz_means$Upz), probs = c(0.1, 0.9))
+knots <-
+  quantile(as.numeric(upz_means$Upz), probs = c(0.25, 0.5, 0.75))
+boundary_knots <-
+  quantile(as.numeric(upz_means$Upz), probs = c(0.1, 0.9))
 
-upz_means[,1] <- as.numeric(upz_means[,1])
+upz_means[, 1] <- as.numeric(upz_means[, 1])
 new_data <-
   with(upz_means, data.frame(Upz = seq(range(Upz)[1], range(Upz)[2], by = 0.05)))
 
@@ -516,23 +530,33 @@ with(upz_means,
        col = " darkgrey "
      ))
 lines(new_data$Upz, preds$fit , lwd = 2, col = " blue")
-matlines(
-  new_data$Upz,
-  se.bands ,
-  lwd = 1,
-  col = " blue",
-  lty = 3
-)
+matlines(new_data$Upz,
+         se.bands ,
+         lwd = 1,
+         col = " blue",
+         lty = 3)
 
 
-# plot the average puntaje per upz in a map with color blu for upz < 30 and > 70, red for the others
+# gettin upz codes for school under 280 in scores according to model_ns
+# initialize upz_low
+upz_low <- c()
+for (i in 1:nrow(upz_means)) {
+  if (model_ns$fitted.values[i] < 280) {
+    upz_low <- c(upz_low, upz_means[i, 1])
+  }
+}
+
+
+# plot the average puntaje per upz in a map with color gradient from blu for upz_lim to red for the others
+
 bogota.map +
-  geom_point(
-    data = final_data,
-    aes(x = X, y = Y, 
-        color = ifelse(as.numeric(Upz) < 30 | as.numeric(Upz) > 70, "blue", "red")),
-    alpha = 1
-  ) +
+  geom_point(data = final_data,
+             aes(
+               x = X,
+               y = Y,
+               color = ifelse(!(Upz %in% upz_low), "blue", "red")
+             ),
+             alpha = 1) +
   scale_color_manual(name = "Upz", values = c("blue", "red"))
 
 
