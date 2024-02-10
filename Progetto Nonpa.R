@@ -10,11 +10,6 @@ raw_data <- read.csv('PruebasSaber_2021_12.csv')
 head(raw_data)
 names <- colnames(raw_data)
 
-# plot(raw_data$X, raw_data$P_Puntaje_)
-# plot(raw_data$Y, raw_data$P_Puntaje_)
-# plot(raw_data$X, raw_data$Y) # plot of the coordinates (vorrei fare una cosa
-# più carina)
-
 #Keep only variables of interest
 indexes = c(1, 2, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 64)
 data <- raw_data[, indexes]
@@ -61,16 +56,10 @@ data <- raw_data[, indexes]
 
 # COD_LOCA: codes referring to one of the neighborhood in the city
 
-#-----------------------------------------------------------------------------
-# Objectives:
-# Understand the spatial dependence of schools with the students tests' scores
-# Analyise if there is a difference between schools' categories
-#
-
-# Workflow:
-# Data exploration (boxplots, outliers)
-# Nonparametric tests for differences between schools
-# Regression (coordinates, numero di studenti, ...) -> prediction
+# plot(raw_data$X, raw_data$P_Puntaje_)
+# plot(raw_data$Y, raw_data$P_Puntaje_)
+# plot(raw_data$X, raw_data$Y) # plot of the coordinates (vorrei fare una cosa
+# più carina)
 
 #--------------------------------------------------------------------------
 # How are the schools located in the city of Bogotà?
@@ -80,6 +69,8 @@ data <- raw_data[, indexes]
 
 library(sf)
 library(ggplot2)
+
+# AGGIUNGERE MAPPA MACRO
 
 # Import a geojson or shapefile
 map <- read_sf("poblacion-upz-bogota.geojson")
