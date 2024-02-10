@@ -1,0 +1,12 @@
+# RStudio
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+.Rproj*
+.Rcheck/
+*.Rproj.user/
+.Rproj.user/
+.RData
+.Rhistory
+.Rproj.user/
