@@ -483,9 +483,13 @@ for (i in 1:length(levels(data_years$upz))) {
 }
 
 
-# plot in a map the schools where the means in puntaje per upz is the highest, with the size of the point depending on the average score
+# plot in a map the schools where the means in puntaje per upz is the highest,
+#with the size of the point depending on the average score
 upz_means <-
   aggregate(final_data[, 3:6], by = list(final_data$Upz), FUN = mean)
+#change name of first column
+colnames(upz_means)[1] <- "Upz"
+
 bogota.map +
   geom_point(data = final_data,
              aes(
@@ -501,7 +505,7 @@ bogota.map +
 # plot the average puntaje per upz
 upz_means <- cbind(upz_means, rowMeans(upz_means[, 2:5]))
 colnames(upz_means)[ncol(upz_means)] <- "Average_puntaje"
-colnames(upz_means)[1] <- "Upz"
+
 plot(
   upz_means[, 1],
   upz_means[, 6],
@@ -518,7 +522,7 @@ knots <-
 boundary_knots <-
   quantile(as.numeric(upz_means$Upz), probs = c(0.1, 0.9))
 
-upz_means[, 1] <- as.numeric(upz_means[, 1])
+upz_means[, 1] <- as.numeric(levels(upz_means[, 1]))
 new_data <-
   with(upz_means, data.frame(Upz = seq(range(Upz)[1], range(Upz)[2], by = 0.05)))
 
@@ -566,3 +570,121 @@ bogota.map +
   scale_color_manual(name = "Upz", values = c("blue", "red"))
 
 
+# Geospatial hotspot analysis
+library(sf)
+library(spdep)
+library(sfdep)
+library(tidyr)
+library(ggplot2)
+library(dplyr)
+
+#add column average puntaje to map
+map <- cbind(map, upz_means[match(map$cod_upz, upz_means$Upz), 6])
+st_geometry(map) <- "geometry"
+colnames(map)[ncol(map)-1] <- "Average_puntaje"
+
+# elimintate NA values
+map_na <- map[is.na(map$Average_puntaje),]
+map <- map[!is.na(map$Average_puntaje),]
+
+
+# Create a neighbor list based on queen contiguity
+list_nb <- poly2nb(map, queen = TRUE)
+
+
+# Check for empty neighbor sets
+# card() calculates number of neighbors for each polygon in the list
+# which() finds polygons with 0 neighbors
+empty_nb <- which(card(list_nb) == 0)
+empty_nb   
+
+#plot the empty neighbor sets
+bogota.map +
+  geom_sf(data = map, fill = "white") +
+  geom_sf(data = map[empty_nb,], fill = "red") +
+  theme_void()
+
+
+# Remove polygons with empty neighbor sets from the data
+map_subset <- map[, ]
+
+# Now that we removed empty neighbor sets (map_subset)
+# Identify neighbors with queen contiguity (edge/vertex touching)
+map_nb <- poly2nb(map_subset, queen = TRUE)
+
+# Binary weighting assigns a weight of 1 to all neighboring features 
+# and a weight of 0 to all other features
+map_w_binary <- nb2listw(map_nb, style="B")
+
+# Calculate spatial lag of TreEqty
+map_lag <- lag.listw(map_w_binary, map_subset$Average_puntaje)
+
+
+# Test for global G statistic of TreEqty
+globalG.test(map_subset$Average_puntaje, map_w_binary)
+
+# pvalue = 0.012, so we have a significant spatial autocorrelation
+
+
+# Identify neighbors, create weights, calculate spatial lag
+map_nbs <- map_subset |> 
+  mutate(
+    nb = st_contiguity(geometry),        # neighbors share border/vertex
+    wt = st_weights(nb),                 # row-standardized weights
+    tes_lag = st_lag(Average_puntaje, nb, wt)    # calculate spatial lag of TreEqty
+  ) 
+
+# Calculate the Gi using local_g_perm
+map_hot_spots <- map_nbs |> 
+  mutate(
+    Gi = local_g_perm(Average_puntaje, nb, wt, nsim = 9999)
+    # nsim = number of Monte Carlo simulations (999 is default)
+  ) |> 
+  # The new 'Gi' column itself contains a dataframe 
+  # We can't work with that, so we need to 'unnest' it
+  unnest(Gi) 
+
+
+# Cursory visualization
+# Plot looks at gi values for all locations
+map_hot_spots |> 
+  ggplot((aes(fill = gi))) +
+  geom_sf(color = "black", lwd = 0.15) +
+  scale_fill_gradient2() +# makes the value 0 (random) be the middle
+  theme_void()
+
+
+# Create a new data frame called 'tes_hot_spots"
+map_hot_spots |> 
+  # with the columns 'gi' and 'p_folded_sim"
+  # 'p_folded_sim' is the p-value of a folded permutation test
+  select(gi, p_folded_sim) |> 
+  mutate(
+    # Add a new column called "classification"
+    classification = case_when(
+      # Classify based on the following criteria:
+      gi > 0 & p_folded_sim <= 0.01 ~ "Very hot",
+      gi > 0 & p_folded_sim <= 0.05 ~ "Hot",
+      gi > 0 & p_folded_sim <= 0.1 ~ "Somewhat hot",
+      gi < 0 & p_folded_sim <= 0.01 ~ "Very cold",
+      gi < 0 & p_folded_sim <= 0.05 ~ "Cold",
+      gi < 0 & p_folded_sim <= 0.1 ~ "Somewhat cold",
+      TRUE ~ "Insignificant"
+    ),
+    # Convert 'classification' into a factor for easier plotting
+    classification = factor(
+      classification,
+      levels = c("Very hot", "Hot", "Somewhat hot",
+                 "Insignificant",
+                 "Somewhat cold", "Cold", "Very cold")
+    )
+  ) |> 
+  # Visualize the results with ggplot2
+  ggplot(aes(fill = classification)) +
+  geom_sf(color = "black", lwd = 0.1) +
+  scale_fill_brewer(type = "div", palette = 5) +
+  theme_void() +
+  labs(
+    fill = "Hot Spot Classification",
+    title = "Average Puntaje Hot Spots"
+  )
