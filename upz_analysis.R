@@ -1,9 +1,17 @@
 rm(list = ls())
 
-# libraries
+# libraries for the script
 library(splines)
 library(ggpubr)
 library(sf)
+library(gridExtra)
+library(sf)
+library(spdep)
+library(sfdep)
+library(tidyr)
+library(ggplot2)
+library(dplyr)
+
 
 # set directory
 # Get the path to the directory containing the current script
@@ -191,17 +199,6 @@ for (i in 1:4) {
 
 # HOTSPOT ANALYSIS
 
-
-
-
-# Load required libraries
-library(gridExtra)
-library(sf)
-library(spdep)
-library(sfdep)
-library(tidyr)
-library(ggplot2)
-library(dplyr)
 
 
 
