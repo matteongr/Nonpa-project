@@ -2,11 +2,11 @@
 ###===============================================================================###
 
 # Import the necessary datasets
-raw_data <- read.csv('PruebasSaber_2021_12.csv')
-colegios <- read.csv('Colegios.csv')
-aprobacion <- read.csv('taprobacionofupz.csv')
-desercion <- read.csv("tdesercionofupz.csv")
-density <- read.csv("poblacion-upz-bogota.csv", sep = ";")
+raw_data <- read.csv('Data/PruebasSaber_2021_12.csv')
+colegios <- read.csv('Data/Colegios.csv')
+aprobacion <- read.csv('Data/taprobacionofupz.csv')
+desercion <- read.csv("Data/tdesercionofupz.csv")
+density <- read.csv("Data/poblacion-upz-bogota.csv", sep = ";")
 
 ## Passing rate ##
 # Create a data frame with relevant columns to merge for passing rate
@@ -62,9 +62,9 @@ raw_data <- merge(raw_data, df_density,
 
 ## Years ##
 # Import datasets
-data_2022 <- read.csv("data_2022.csv")
-data_2020 <- read.csv("data_2020.csv")
-data_2019 <- read.csv("data_2019.csv")
+data_2022 <- read.csv("Data/data_2022.csv")
+data_2020 <- read.csv("Data/data_2020.csv")
+data_2019 <- read.csv("Data/data_2019.csv")
 data_2021 <- raw_data
 
 # Change column names of original dataset to differentiate them

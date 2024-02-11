@@ -2,11 +2,12 @@
 title: "R Notebook"
 output: html_notebook
 ---
-
+# Import data
 ```{r}
-data <- read.csv("Extended_data_clean.csv", header = T)
+data <- read.csv("Data/Extended_data_clean.csv", header = T)
 ```
 
+# Permutational test function
 ```{r}
 ###
 ###Permutation t tests
@@ -14,7 +15,7 @@ data <- read.csv("Extended_data_clean.csv", header = T)
 
 perm_t_test=function(x,y,iter=1e3){
   
-  T0=abs(mean(x)-mean(y))  # define the test statistic
+  T0=abs(median(x)-median(y))  # define the test statistic
   T_stat=numeric(iter) # a vector to store the values of each iteration
   x_pooled=c(x,y) # pooled sample
   n=length(x_pooled)
@@ -37,71 +38,53 @@ perm_t_test=function(x,y,iter=1e3){
 }
 ```
 
+# Test for public vs private schools
 ```{r}
 ###
-# Rank test to see if CLASE_TIPO (private vs public) scores are different --> DA MODIFICARE IN PERMUTATION TEST
+# Rank test to see if CLASE_TIPO (private vs public) scores are different
 ###
 
 # x.1 public
 # x.2 private
 
-x.1 <- data$P_Puntaje_[which(data$CLASE_TIPO %in% c(1,2,3))]
-x.2 <- data$P_Puntaje_[which(data$CLASE_TIPO %in% c(4,5,6))]
+x.1 <- data$P_Puntaje_2021[which(data$CLASE_TIPO %in% c(1,2,3))]
+x.2 <- data$P_Puntaje_2021[which(data$CLASE_TIPO %in% c(4,5,6))]
 
-alpha <- 0.05
-wilcox.test(x.1,y=x.2, paired=F, conf.level = 1-alpha)$p.value
-
+perm_t_test(x.1, x.2)
 ```
 
 ```{r}
-alpha <- 0.05
-wilcox.test(x.1,y=x.2, paired=F, conf.level = 1-alpha, alternative = "less")$p.value
-```
-We can confirm that scores of public and private schools are different
-
-
-```{r}
-boxplot(x.1, x.2)
+boxplot(list("Public" = x.1, "Private" = x.2),
+        main = "Scores of public vs private schools",
+        xlab = "Type of school",
+        ylab = "Score")
 ```
 We can confirm that the private school perform better than the public ones.
 
-
-
+# Test for Calendar A vs B
 ```{r}
 ###
 # Test to see if scores are different for each CALENDARIO
 ###
 
 
-x1 <- data$P_Puntaje_[which(data$CALENDARIO == 1)]
-x2 <- data$P_Puntaje_[which(data$CALENDARIO == 3)]
+x1 <- data$P_Puntaje_2021[which(data$CALENDARIO == 1)]
+x2 <- data$P_Puntaje_2021[which(data$CALENDARIO == 3)]
 
 perm_t_test(x1, x2)
 ```
-
-```{r}
-hist(x1)
-hist(x2)
-```
-
 Schools from Calendario B have different distribution than those from Calendario A.
 
-
 ```{r}
-alpha <- 0.05
-wilcox.test(x1, y = x2, paired=F, conf.level = 1-alpha,
-            alternative = "less")$p.value
+boxplot(list("A" = x1, "B" = x2),
+        main = "Scores of calendar A vs B schools",
+        xlab = "Type of school",
+        ylab = "Score")
 ```
 
-```{r}
-median(x1)
-median(x2)
-```
+With the boxplot we can clearly see that calendar B schools perform significantly better than schools from calendar A.
 
-With this test we confirm that the median score of students from Calendario B schools is higher than Calendario A.
-
-
-
+# Test for city zone (COD_LOCA)
 ```{r}
 ###
 # Test to see if there are difference in the scores according to the zone (COD_LOCA)
@@ -115,14 +98,13 @@ table(data$COD_LOCA)
 ### ANOVA
 ###
 
-scores <- data$P_Puntaje_
+scores <- data$P_Puntaje_2021
 LOC <- as.factor(data$COD_LOCA)
 
 fit <- aov(scores ~ LOC)
 summary(fit)
 
 T0 <- summary(fit)[[1]][1,4]  # extract the test statistic
-T0
 ```
 
 
@@ -160,18 +142,18 @@ plot(scores ~ LOC, xlab='treat', col=rainbow(length(levels(LOC))), main='Origina
 
 There is statistical evidence to assure that there is a difference in the scores of schools from different zones.
 
-
+# Test for number of students
 ```{r}
 # see whether the number of students is relevant. 
-quantile(data$EVALUADOS,probs=c(0.25,0.5,0.75))
+quantile(data$EVALUADOS_2021,probs=c(0.25,0.5,0.75))
 #25,49,75
 #tenere la mediana mi sembrava un brutto treshold, quindi ho messo
 #100 per dividere tra scuole piccole e grandi, se avete
 #un treshold migliore modificate il codice --
 
 med <- median(data$EVALUADOS)
-small_schools = data[which(data$EVALUADOS<=92),]
-big_schools = data[which(data$EVALUADOS>92),]
+small_schools = data[which(data$EVALUADOS_2021<=92),]
+big_schools = data[which(data$EVALUADOS_2021>92),]
 
 set.seed(123)
 
@@ -201,15 +183,17 @@ perm_t_test=function(x,y,iter=1e3){
 
 B2 = 1e4
 
-perm_t_test(small_schools$P_Puntaje_,big_schools$P_Puntaje_)
+perm_t_test(small_schools$P_Puntaje_2021,big_schools$P_Puntaje_2021)
 #p-value is 0
+```
 
-hist(small_schools$P_Puntaje_,col = "green")
-hist(big_schools$P_Puntaje_,col="blue")
+```{r}
+hist(small_schools$P_Puntaje_2021,col = "green")
+hist(big_schools$P_Puntaje_2021,col="blue")
 
 #small schools perform better
 ```
 
-
+By grouping the schools into small (< quant 75%) and big (> quant 75%) we find a signifincant difference between the scores.
 
 
