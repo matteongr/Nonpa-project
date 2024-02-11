@@ -1,10 +1,17 @@
 rm(list = ls())
 
+# libraries
 library(splines)
 library(ggpubr)
 library(sf)
 
+# set directory
+# Get the path to the directory containing the current script
+# Set the working directory to the current directory
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
+
+# import the data
 data_years <- read.csv("data_years.csv")
 colegios <- read.csv("colegios.csv")
 map <- read_sf("poblacion-upz-bogota.geojson")
@@ -16,12 +23,13 @@ bogota.map <- ggplot(map) +
 # Initialize a vector to store the values of upz
 upz_values <- numeric(nrow(data_years))
 
+
 # Loop over each row of data_years
 for (i in 1:nrow(data_years)) {
   # Check if COD_DANE12 is in colegios$DANE12_EST
   if (data_years$COD_DANE12[i] %in% colegios$DANE12_EST) {
     # If it is, get the index where the condition is true
-    idx <- which(colegios$DANE12_EST == data_years$COD_DANE12[i])
+    idx <- which(colegios$DANE12_EST == data_years$COD_DANE12[i])[1]
     # Assign the corresponding COD_UPZ value to the correct index in upz_values
     upz_values[i] <- as.numeric(colegios$COD_UPZ[idx])
   }
@@ -51,14 +59,21 @@ for (i in 2:5) {
   )
 }
 
-bogota.map.bad <-
-  list(
-    "2019" = bogota.map,
-    "2020" = bogota.map,
-    "2021" = bogota.map,
-    "2022" = bogota.map
-  )
 
+update_map <- function(map, year, data, upz_low) {
+  map <- map +
+    geom_point(data = data,
+               aes(
+                 x = X,
+                 y = Y,
+                 color = ifelse(!(upz %in% upz_low), "Best Performing", "Worse Performing")
+               ),
+               alpha = 1) +
+    scale_color_manual(name = "Performance per upz", 
+                       values = c("Best Performing" = "blue", "Worse Performing" = "red")) +
+    labs(title = paste("Puntaje per upz in", year))
+  return(map)
+}
 
 
 performance <- function(year) {
@@ -118,32 +133,45 @@ performance <- function(year) {
     }
   }
   
-
-    # plot the average puntaje per upz in a map with color gradient from blu for upz_lim to red for the others
-  bogota.map.bad[[map_name]] <- bogota.map.bad[[map_name]] +
-    geom_point(data = final_data,
-               aes(
-                 x = X,
-                 y = Y,
-                 color = ifelse(!(upz %in% upz_low), "blue", "red")
-               ),
-               alpha = 1) +
-    scale_color_manual(name = "Upz", values = c("blue", "red"))
   
-  
+  return(upz_low)
   
 }
+
 
 par(mfrow = c(2, 2))
-for (i in 2019:2022) {
-  performance(i)
+# Initialize an empty list to store the results
+upz_low_list <- list()
+
+# Loop over each year
+for (year in 2019:2022) {
+  # Call the performance function for the current year and store the result in the list
+  upz_low_list[[as.character(year)]] <- performance(year)
 }
 
+# Find the maximum length of the upz_low lists
+max_length <- max(sapply(upz_low_list, length))
+
+# Pad the shorter lists with zeros
+upz_low_padded <- lapply(upz_low_list, function(x) {
+  if (length(x) < max_length) {
+    c(x, rep(0, max_length - length(x)))
+  } else {
+    x
+  }
+})
+
+# Combine the padded lists into a dataframe
+upz_low <- as.data.frame(do.call(cbind, upz_low_padded))
+
+
+
+
 ggarrange(
-  bogota.map.bad[["2019"]],
-  bogota.map.bad[["2020"]],
-  bogota.map.bad[["2021"]],
-  bogota.map.bad[["2022"]],
+  update_map(bogota.map, "2019", final_data, upz_low[, 1]),
+  update_map(bogota.map, "2020", final_data, upz_low[, 2]),
+  update_map(bogota.map, "2021", final_data, upz_low[, 3]),
+  update_map(bogota.map, "2022", final_data, upz_low[, 4]),
   ncol = 2,
   nrow = 2
 )
