@@ -300,7 +300,7 @@ perform_hotspot_analysis <- function(year_data, year) {
              labs(fill = "Hot Spot Classification",
                   title = paste("P_Puntaje Hot Spots for", year))
            
-           return(list(cursory_plot, classification_plot))
+           return(list(cursory_plot, classification_plot, globalG_test_result))
 }
 
 # Apply hotspot analysis for each year separately
@@ -310,6 +310,17 @@ hotspot_results <- lapply(list(
   list(data = upz_means[, c("Upz", "P_Puntaje_2021")], year = 2021),
   list(data = upz_means[, c("Upz", "P_Puntaje_2022")], year = 2022)
 ), function(x) perform_hotspot_analysis(x$data, x$year))
+
+# report p.value of global G statistic for each year
+G_results <- lapply(hotspot_results, `[[`, 3)
+for (i in 1:4) {
+  print(paste("Year", 2019 + i - 1, ":", G_results[[i]]$p.value))
+}
+# verify if the p-value is less than 0.05 for each year
+# if it is, then the global G statistic is significant
+is_significant <- sapply(G_results, function(x) x$p.value < 0.05)
+is_significant
+
 
 # Arrange plots in a 2x2 grid for each type of plot
 cursory_plots <- lapply(hotspot_results, `[[`, 1)
