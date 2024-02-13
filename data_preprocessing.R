@@ -8,8 +8,17 @@ aprobacion <- read.csv('Data/taprobacionofupz.csv')
 desercion <- read.csv("Data/tdesercionofupz.csv")
 density <- read.csv("Data/poblacion-upz-bogota.csv", sep = ";")
 
+# Private and public schools (transform variable into binary)
+Private <- ifelse(raw_data$CLASE_TIPO %in% c(4, 5, 6), 1, 0) #now 1 --> private; 0--> public
+raw_data$CLASE_TIPO <- Private
+
+# Calendario A and B
+raw_data <- raw_data[which(raw_data$CALENDARIO %in% c(1,3)),]
+
 ## Passing rate ##
 # Create a data frame with relevant columns to merge for passing rate
+aprobacion <- aprobacion[which(!duplicated(aprobacion$COD_UPZ)),]
+
 aprobacion$COD_UPZ <- gsub("[^0-9.-]", "", aprobacion$COD_UPZ) #take only the numeric part of COD_UPZ
 df_aprobacion <- aprobacion[c("Thombre_UP", "Tmujer_UPZ", "COD_UPZ")]
 colnames(df_aprobacion) <- c("Thombre_aprob", "Tmujer_aprob", "COD_UPZ")
@@ -25,6 +34,8 @@ raw_data <- merge(raw_data, df_aprobacion,
 
 ## Dropout rate ##
 # Create a data frame with relevant columns to merge for dropout rate
+desercion <- desercion[which(!duplicated(desercion$COD_UPZ)),]
+
 desercion$COD_UPZ <- gsub("[^0-9.-]", "", desercion$COD_UPZ) #take only the numeric part of COD_UPZ
 df_desercion <- desercion[c("Thombre_UP", "Tmujer_UPZ", "COD_UPZ")]
 colnames(df_desercion) <- c("Thombre", "Tmujer", "COD_UPZ")
@@ -36,9 +47,11 @@ df_desercion <- colegios[c("Thombre", "Tmujer", "DANE12_SED")]
 
 # Merge the new columns
 raw_data <- merge(raw_data, df_desercion,
-                  by.x = "COD_DANE12", by.y = "DANE12_SED")
+                  by.x = "COD_DANE12", by.y = "DANE12_SED", all.x = F)
 
 ## Socioeconomic status ##
+colegios <- colegios[which(!duplicated(colegios$DANE12_SED)),]
+
 # Create a data frame with relevant columns to merge
 df_colegios <- colegios[c("DANE12_SED", "ESTRATO")]
 
@@ -47,6 +60,8 @@ raw_data <- merge(raw_data, df_colegios,
                 by.x = "COD_DANE12", by.y = "DANE12_SED")
 
 ## Population density per UPZ ##
+density <- density[which(!duplicated(density$Código.UPZ)),]
+
 # Create a data frame with relevant columns to merge
 df_density <- data.frame("COD_UPZ" = density$Código.UPZ,
                          "DENSITY" = density$Densidad.urbana)
@@ -66,6 +81,11 @@ data_2022 <- read.csv("Data/data_2022.csv")
 data_2020 <- read.csv("Data/data_2020.csv")
 data_2019 <- read.csv("Data/data_2019.csv")
 data_2021 <- raw_data
+
+data_2022 <- data_2022[which(!duplicated(data_2022$DANE12_SED)),]
+data_2020 <- data_2020[which(!duplicated(data_2020$COD_DANE12)),]
+data_2019 <- data_2019[which(!duplicated(data_2019$COD_DANE12)),]
+data_2021 <- data_2021[which(!duplicated(data_2021$COD_DANE12)),]
 
 # Change column names of original dataset to differentiate them
 colnames(data_2021)[which(colnames(data_2021)== "P_Puntaje_")] <- "P_Puntaje_2021"
