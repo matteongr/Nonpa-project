@@ -1,5 +1,6 @@
 ###================= Merge new variables to the original dataset =================###
 ###===============================================================================###
+library(sf)
 
 # Import the necessary datasets
 raw_data <- read.csv('Data/PruebasSaber_2021_12.csv')
@@ -14,6 +15,25 @@ raw_data$CLASE_TIPO <- Private
 
 # Calendario A and B
 raw_data <- raw_data[which(raw_data$CALENDARIO %in% c(1,3)),]
+
+# Convert coordinates to Lat Long
+convert_to_wgs84 <- function(x, y) {
+  df <-
+    data.frame(x = x, y = y) # Create a data frame with the input coordinates
+  points <-
+    st_as_sf(df, coords = c("x", "y"), crs = 3857) # Create a simple feature (sf) object
+  points_wgs84 <-
+    st_transform(points, 4326) # Transform the coordinates to WGS84 (EPSG:4326)
+  lonlat <-
+    st_coordinates(points_wgs84) # Extract the longitude and latitude
+  
+  return(lonlat)
+}
+
+coords <- raw_data[,c(1,2)]
+coords <- convert_to_wgs84(coords[,1], coords[,2])
+raw_data$X <- coords[,1]
+raw_data$Y <- coords[,2]
 
 ## Passing rate ##
 # Create a data frame with relevant columns to merge for passing rate

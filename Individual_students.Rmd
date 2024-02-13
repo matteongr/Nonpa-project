@@ -1,0 +1,150 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+# Import the original dataset
+```{r}
+# data_students <- read.csv("Data/Saber_2019-_2024.csv")
+```
+
+# Create sub set only for Bogota
+```{r}
+# data_bogota <- data_students[which(data_students$COLE_DEPTO_UBICACION == "BOGOTÁ"),]
+# write.csv(data_bogota, "Data/data_students.csv")
+
+data_bogota <- read.csv("Data/data_students.csv")
+
+df_plot <- data_bogota[c("ESTU_FECHANACIMIENTO",
+                         "ESTU_INSE_INDIVIDUAL",
+                         "PUNT_GLOBAL")]
+df_plot[,1] <- as.numeric(substr(df_plot[,1], 7, 10)) # take only the year of birth
+df_plot[,2] <- as.numeric(df_plot[,2])
+df_plot[,3] <- as.numeric(df_plot[,3])
+df_plot <- df_plot[which(df_plot$ESTU_FECHANACIMIENTO > 1900),]
+
+plot(df_plot)
+```
+
+# ANALYSIS OF PEERS SES
+
+We want to see if the SES of peers is influential when taking out the personal SES effect.
+```{r}
+# Import the schools dataset
+data_schools <- read.csv("Data/Extended_data_clean.csv")
+
+# Calculate the mean individual SES for each school and add it as a new column
+mean_SES <- c()
+for (i in 1:nrow(data_schools)){
+  idx <- which(data_bogota$COLE_COD_DANE_SEDE == data_schools$COD_DANE12[i])
+  SES_i <- na.omit(as.numeric(data_bogota$ESTU_INSE_INDIVIDUAL[idx]))
+  mean_SES <- c(mean_SES, mean(SES_i))
+}
+
+# Add the new column to the schools data set
+data_schools <- cbind(data_schools, indiv_SES = mean_SES)
+data_schools <- na.omit(data_schools)
+```
+
+```{r}
+# Check the significance of the new column
+plot(data_schools$indiv_SES, data_schools$P_Puntaje_2021)
+
+summary(lm(P_Puntaje_2021 ~ indiv_SES,
+           data = data_schools))
+```
+
+```{r}
+# Add the mean SES value of the school to each student
+pb <- txtProgressBar(min = 0,
+                     max = nrow(data_bogota),
+                     style = 3,
+                     width = 50,
+                     char = "=")
+
+mean_SES <- c()
+for (i in 1:nrow(data_bogota)){
+  idx <- which(data_schools$COD_DANE12 == data_bogota$COLE_COD_DANE_SEDE[i])
+  SES_i <- data_schools$indiv_SES[idx]
+  mean_SES <- c(mean_SES, mean(SES_i))
+  setTxtProgressBar(pb, i)
+}
+
+df_reg <- cbind(data_bogota[which(!is.na(mean_SES)),],
+                mean_ses = mean_SES[which(!is.na(mean_SES))])
+df_reg <- na.omit(df_reg)
+```
+
+
+```{r}
+# Separate in train/test to evaluate performance
+sampled <- sample(c(T,F), nrow(df_reg), replace = T, prob = c(0.5, 0.5))
+df_reg_train <- df_reg[sampled,]
+df_reg_test <- df_reg[!sampled,]
+
+# Regress the score with mean SES and INDIV_SES
+model_full <- lm(PUNT_GLOBAL ~ mean_ses + as.numeric(ESTU_INSE_INDIVIDUAL),
+                  data = df_reg_train)
+model_peers <- lm(PUNT_GLOBAL ~ mean_ses,
+                  data = df_reg_train)
+model_indiv <- lm(PUNT_GLOBAL ~ as.numeric(ESTU_INSE_INDIVIDUAL),
+                  data = df_reg_train)
+
+summary(model_full)
+summary(model_peers)
+summary(model_indiv)
+```
+
+```{r}
+# Comparison of the two models using the test set
+y_hat_full <- predict(model_full, newdata = df_reg_test)
+y_hat_peers <- predict(model_peers, newdata = df_reg_test)
+y_hat_indiv <- predict(model_indiv, newdata = df_reg_test)
+
+# Compute MSE
+MSE_full <- sum((df_reg_test$PUNT_GLOBAL - y_hat_full)**2) / nrow(df_reg_test)
+MSE_peers <- sum((df_reg_test$PUNT_GLOBAL - y_hat_peers)**2) / nrow(df_reg_test)
+MSE_indiv <- sum((df_reg_test$PUNT_GLOBAL - y_hat_indiv)**2) / nrow(df_reg_test)
+
+MSE_full
+MSE_peers
+MSE_indiv
+```
+
+Either with R^2 or with test set we can see that the peers mean SES is as good (even better) than the individual SES.
+
+```{r}
+length(unique(df_reg$mean_ses))
+length(unique(df_reg$ESTU_INSE_INDIVIDUAL))
+```
+
+This is a significant result knowing that there are much less individual values for peer SES.
+
+
+```{r}
+library(sf)
+library(ggplot2)
+
+# Import a geojson or shapefile
+map <- read_sf("Data/map.geojson") 
+# potrebbero non essere sufficienti, perché ci sono scuole fuori dal confine della mappa
+bogota.map <- ggplot(map) +
+                geom_sf(fill = "white")
+
+coord <- as.matrix(data_schools[, 3:4])
+
+final_map <- bogota.map +
+  geom_point(data = as.data.frame(coord), aes(x = X, y = Y, color= data_schools$indiv_SES), size = 0.15)+
+  scale_color_gradient(low="red", high="green", name="Scores")+
+  theme(legend.position="right", axis.text.x = element_text(size = 7))
+final_map
+```
+
+
+
+
+
+
+
+
+
+
