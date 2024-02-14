@@ -20,7 +20,7 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 
 # import the data
-data_years <- read.csv("Data/data_years.csv")
+extended_data <- read.csv("Data/Extended_data_clean.csv")
 colegios <- read.csv("Data/colegios.csv")
 map <- read_sf("Data/poblacion-upz-bogota.geojson")
 
@@ -29,26 +29,26 @@ bogota.map <- ggplot(map) +
 
 
 # Initialize a vector to store the values of upz
-upz_values <- numeric(nrow(data_years))
+upz_values <- numeric(nrow(extended_data))
 
 
-# Loop over each row of data_years
-for (i in 1:nrow(data_years)) {
+# Loop over each row of extended_data
+for (i in 1:nrow(extended_data)) {
   # Check if COD_DANE12 is in colegios$DANE12_EST
-  if (data_years$COD_DANE12[i] %in% colegios$DANE12_EST) {
+  if (extended_data$COD_DANE12[i] %in% colegios$DANE12_EST) {
     # If it is, get the index where the condition is true
-    idx <- which(colegios$DANE12_EST == data_years$COD_DANE12[i])[1]
+    idx <- which(colegios$DANE12_EST == extended_data$COD_DANE12[i])[1]
     # Assign the corresponding COD_UPZ value to the correct index in upz_values
     upz_values[i] <- as.numeric(colegios$COD_UPZ[idx])
   }
 }
 
 
-# Add the upz_values vector as a new column named "upz" to data_years
-data_years <- cbind(data_years, upz = upz_values)
+# Add the upz_values vector as a new column named "upz" to extended_data
+extended_data <- cbind(extended_data, upz = upz_values)
 
 final_data <-
-  data_years[, c(2, 3, 73, 74, 9, 75, 10:19, 76, 21, 64, 72)]
+  extended_data[, c("X", "Y", "P_Puntaje_2019", "P_Puntaje_2020", "P_Puntaje_2021", "P_Puntaje_2022", "EVALUADOS_2019", "EVALUADOS_2020", "EVALUADOS_2021", "EVALUADOS_2022", "upz", "Sector", "CALENDARIO", "GENERO", "COD_LOCA", "CLASE_TIPO", "Categoria", "ESTRATO", "DENSITY", "Thombre", "Thombre_aprob", "Tmujer", "Tmujer_aprob")]
 
 upz_means <-
   aggregate(final_data[, 3:6], by = list(final_data$upz), FUN = mean)
