@@ -37,7 +37,8 @@ for (i in 1:nrow(extended_data)) {
   # Check if COD_DANE12 is in colegios$DANE12_EST
   if (extended_data$COD_DANE12[i] %in% colegios$DANE12_EST) {
     # If it is, get the index where the condition is true
-    idx <- which(colegios$DANE12_EST == extended_data$COD_DANE12[i])[1]
+    idx <-
+      which(colegios$DANE12_EST == extended_data$COD_DANE12[i])[1]
     # Assign the corresponding COD_UPZ value to the correct index in upz_values
     upz_values[i] <- as.numeric(colegios$COD_UPZ[idx])
   }
@@ -48,7 +49,31 @@ for (i in 1:nrow(extended_data)) {
 extended_data <- cbind(extended_data, upz = upz_values)
 
 final_data <-
-  extended_data[, c("X", "Y", "P_Puntaje_2019", "P_Puntaje_2020", "P_Puntaje_2021", "P_Puntaje_2022", "EVALUADOS_2019", "EVALUADOS_2020", "EVALUADOS_2021", "EVALUADOS_2022", "upz", "Sector", "CALENDARIO", "GENERO", "COD_LOCA", "CLASE_TIPO", "Categoria", "ESTRATO", "DENSITY", "Thombre", "Thombre_aprob", "Tmujer", "Tmujer_aprob")]
+  extended_data[, c(
+    "X",
+    "Y",
+    "P_Puntaje_2019",
+    "P_Puntaje_2020",
+    "P_Puntaje_2021",
+    "P_Puntaje_2022",
+    "EVALUADOS_2019",
+    "EVALUADOS_2020",
+    "EVALUADOS_2021",
+    "EVALUADOS_2022",
+    "upz",
+    "Sector",
+    "CALENDARIO",
+    "GENERO",
+    "COD_LOCA",
+    "CLASE_TIPO",
+    "Categoria",
+    "ESTRATO",
+    "DENSITY",
+    "Thombre",
+    "Thombre_aprob",
+    "Tmujer",
+    "Tmujer_aprob"
+  )]
 
 upz_means <-
   aggregate(final_data[, 3:6], by = list(final_data$upz), FUN = mean)
@@ -212,14 +237,14 @@ perform_hotspot_analysis <- function(year_data, year) {
   colnames(map)[ncol(map) - 1] <- "P_Puntaje"
   
   # Eliminate NA values
-  map_na <- map[is.na(map$P_Puntaje), ]
-  map <- map[!is.na(map$P_Puntaje), ]
+  map_na <- map[is.na(map$P_Puntaje),]
+  map <- map[!is.na(map$P_Puntaje),]
   
   # Create a neighbor list based on queen contiguity
   list_nb <- poly2nb(map, queen = TRUE)
   
   # Remove polygons with empty neighbor sets from the data
-  map_subset <- map[card(list_nb) > 0,]
+  map_subset <- map[card(list_nb) > 0, ]
   
   # Now that we removed empty neighbor sets (map_subset)
   # Identify neighbors with queen contiguity (edge/vertex touching)
@@ -249,8 +274,7 @@ perform_hotspot_analysis <- function(year_data, year) {
   # Calculate the Gi using local_g_perm
   map_hot_spots <- map_nbs |>
     mutate(Gi = local_g_perm(P_Puntaje, nb, wt, nsim = 9999)
-           # nsim = number of Monte Carlo simulations (999 is default)
-           ) |>
+           # nsim = number of Monte Carlo simulations (999 is default)) |>
            unnest(Gi)
            
            # Cursory visualization
@@ -309,7 +333,8 @@ hotspot_results <- lapply(list(
   list(data = upz_means[, c("Upz", "P_Puntaje_2020")], year = 2020),
   list(data = upz_means[, c("Upz", "P_Puntaje_2021")], year = 2021),
   list(data = upz_means[, c("Upz", "P_Puntaje_2022")], year = 2022)
-), function(x) perform_hotspot_analysis(x$data, x$year))
+), function(x)
+  perform_hotspot_analysis(x$data, x$year))
 
 # report p.value of global G statistic for each year
 G_results <- lapply(hotspot_results, `[[`, 3)
@@ -318,7 +343,8 @@ for (i in 1:4) {
 }
 # verify if the p-value is less than 0.05 for each year
 # if it is, then the global G statistic is significant
-is_significant <- sapply(G_results, function(x) x$p.value < 0.05)
+is_significant <- sapply(G_results, function(x)
+  x$p.value < 0.05)
 is_significant
 
 

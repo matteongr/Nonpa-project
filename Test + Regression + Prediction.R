@@ -1,3 +1,5 @@
+rm(list = ls())
+
 ## ---- SOME REGRESSION MODELS
 
 library(ISLR2)
@@ -6,250 +8,370 @@ library(mgcv)
 library(rgl)
 library(splines)
 library(pbapply)
+library(knitr)
+library(kableExtra)
+library(tidyr)
+library(dplyr)
 
-#pulizia = tolgo tutte quelle covariate col ? che non capivamo cosa fossero
-#tipo i calendari che appaiono una volta o cose simili
-step1 = data[-which(data$CALENDARIO == 2),]
-clean_data = step1[-which(step1$CALENDARIO == 5),]
+# load data
+extended_data = read.csv("Data/extended_data_clean.csv")
 
-## MODEL 1: coordinates + interaction 
-model_gam_inter = gam(P_Puntaje_ ~ s(X, bs = 'cr') + s(Y, bs ='cr') + 
-                        s(I(X*Y), bs = 'cr'), data = clean_data)
+gam_models <- function(year, plot, flag.pred) {
+  if (year < 2019 | year > 2022) {
+    stop("Year must be between 2019 and 2022")
+  } else {
+    puntaje_col <- paste("P_Puntaje_", year, sep = "")
+    evaluados_col <- paste("EVALUADOS_", year, sep = "")
+    
+    data <-
+      extended_data[, c("X",
+                        "Y",
+                        puntaje_col,
+                        evaluados_col,
+                        "CALENDARIO",
+                        "GENERO")]
+  }
+  
+  ## MODEL 1: coordinates + interaction
+  model_gam_inter <-
+    gam(as.formula(
+      paste(
+        puntaje_col,
+        "~ s(X, bs = 'cr') + s(Y, bs = 'cr') + s(I(X * Y), bs = 'cr')"
+      )
+    ), data = extended_data)
+  
+  # grid
+  X.grid <- seq(range(extended_data$X)[1],
+                range(extended_data$X)[2],
+                length.out = 100)
+  Y.grid <- seq(range(extended_data$Y)[1],
+                range(extended_data$Y)[2],
+                length.out = 100)
+  
+  grid <- expand.grid(X.grid, Y.grid)
+  names(grid) <- c('X', 'Y')
+  
+  pred_inter <- predict(model_gam_inter,
+                        newdata = data.frame(grid, inter = grid$X * grid$Y))
+  
+  if (plot) {
+    persp3d(X.grid, Y.grid, pred_inter, col = 'yellow')
+    with(extended_data,
+         points3d(
+           X,
+           Y,
+           get(puntaje_col),
+           col = 'black',
+           size = 5
+         ))
+  }
+  
+  ## no interaction
+  model_gam <-
+    gam(as.formula(paste(
+      puntaje_col, "~ s(X, bs = 'cr') + s(Y, bs = 'cr')"
+    )), data = extended_data)
+  
+  ## coordinates + interaction + evaluados
+  full_model_gam_inter <-
+    gam(as.formula(
+      paste(
+        puntaje_col,
+        "~ s(X, bs = 'cr') + s(Y, bs = 'cr') + s(I(X * Y), bs = 'cr') + s(get(evaluados_col), bs = 'cr')"
+      )
+    ), data = extended_data)
+  
+  # semiparametric
+  model_gam_reduced <-
+    gam(as.formula(paste(
+      puntaje_col, "~ X + Y + s(get(evaluados_col), bs = 'cr')"
+    )), data = extended_data)
+  
+  ## full model + some categorical (linear)
+  full_model_gam_inter_2 <-
+    gam(as.formula(
+      paste(
+        puntaje_col,
+        "~ s(X, bs = 'cr') + s(Y, bs = 'cr') + s(I(X * Y), bs = 'cr') + s(get(evaluados_col), bs = 'cr') + as.factor(CALENDARIO) + as.factor(GENERO)"
+      )
+    ), data = extended_data)
+  
+  if (flag.pred) {
+    return(full_model_gam_inter)
+  } else {
+    return(
+      list(
+        model_gam_inter,
+        model_gam,
+        full_model_gam_inter,
+        model_gam_reduced,
+        full_model_gam_inter_2
+      )
+    )
+  }
+  
+}
 
-#grid
-X.grid=seq(range(clean_data$X)[1],range(clean_data$X)[2],length.out = 100)
-Y.grid=seq(range(clean_data$Y)[1],range(clean_data$Y)[2],length.out = 100)
 
-grid=expand.grid(X.grid,Y.grid)
-names(grid)=c('X','Y')
+# Define model names
+model_names <- c(
+  "Model 1: Coordinates + Interaction",
+  "Model 2: No Interaction",
+  "Model 3: Coordinates + Interaction + Evaluados",
+  "Model 4: Semiparametric",
+  "Model 5: Full Model + categorical"
+)
 
-pred_inter = predict(model_gam_inter,
-                     newdata = data.frame(grid, inter = grid$X * grid$Y))
+# Create an empty data frame to store model characteristics
+model_table <- data.frame(
+  Model = character(),
+  R_squared = numeric(),
+  Year = numeric(),
+  stringsAsFactors = FALSE
+)
 
-persp3d(X.grid, Y.grid, pred_inter, col = 'yellow')
-with(data,
-     points3d(X, Y, P_Puntaje_, col = 'black', size = 5))
+# Loop through each year
+for (year in 2019:2022) {
+  results <- gam_models(year, plot = FALSE, flag.pred = FALSE)
+  year_models <- data.frame(
+    Model = model_names,
+    R_squared = sapply(results, function(model)
+      summary(model)$r.sq),
+    Year = year
+  )
+  model_table <- bind_rows(model_table, year_models)
+}
 
-summary(model_gam_inter)
-#R2 = 24.6%
+# Reshape the data to have years as columns
+model_table_wide <- spread(model_table, Year, R_squared)
 
-## no interaction
-model_gam = gam(P_Puntaje_ ~ s(X, bs = 'cr') + s(Y, bs ='cr'), data = clean_data)
+# Convert the data frame to a formatted table
+formatted_table <- kable(model_table_wide, "html") %>%
+  kable_styling(full_width = FALSE)
+# Print the table
+print(formatted_table)
 
-summary(model_gam)
-#R2 = 23.3%
 
 
-## coordinates + interaction + evaluados
-full_model_gam_inter = gam(P_Puntaje_ ~ s(X, bs = 'cr') + s(Y, bs ='cr') + 
-                             s(I(X*Y), bs = 'cr') + s(EVALUADOS,bs='cr'), data = clean_data)
+# ------------------------------------------------------------------------
 
-summary(full_model_gam_inter)
-#R2 = 27.1%
-
-#semiparametric
-model_gam_reduced=gam(P_Puntaje_ ~ X + Y + s(EVALUADOS,bs='cr'),data = clean_data) 
-summary = summary(model_gam_reduced)
-summary$r.sq
-
-#R2 18% -> no
-
-##full model + some categorical (linear)
-full_model_gam_inter_2 = gam(P_Puntaje_ ~ s(X, bs = 'cr') + s(Y, bs ='cr') + 
-                               s(I(X*Y), bs = 'cr') + s(EVALUADOS,bs='cr') + as.factor(CALENDARIO) +
-                               as.factor(GENERO) , data = clean_data)
-
-summary(full_model_gam_inter_2)
-#R2 = 35.6%
-#all smoothing terms are significant
-#GENERO = 3 is not significant (the males??)
-#CALENDARIO is always significant
-
-#calendario 3 has a positive coefficient: starting in summer helps in performing better
-#genero 5 has a negative sign: mixed schools tend to perform worse
 
 #FULL CONFORMAL: Number of students vs puntaje
 
-library(dplyr)
 library(ggplot2)
-library(knitr)
 library(broom)
-library(tidyr)
-library(progress)
-library(pbapply)
-pboptions(type='none')
+pboptions(type = 'none')
 library(dbscan)
 library(gridExtra)
 library(conformalInference)
-
-data_predict = clean_data[, c(3,4)]
-n_grid = 20
-grid_factor = 0.25
-alpha = .1
-n = nrow(data_predict)
-range_x = range(data_predict[, 1])[2] - range(data_predict[, 1])[1]
-range_y = range(data_predict[, 2])[2] - range(data_predict[, 2])[1]
-test_grid_x = seq(
-  min(data_predict[, 1]) - grid_factor * range_x,
-  max(data_predict[, 1]) + grid_factor * range_x,
-  length.out = n_grid
-)
-test_grid_y = seq(
-  min(data_predict[, 2]) - grid_factor * range_y,
-  max(data_predict[, 2]) + grid_factor * range_y,
-  length.out = n_grid
-)
-xy_surface = expand.grid(test_grid_x, test_grid_y)
-colnames(xy_surface) = colnames(data_predict)
-
 library(MASS)
-library(rgl)
 library(DepthProc)
 library(hexbin)
 library(aplpack)
 library(robustbase)
 library(MDBED)
-library(pbapply)
 library(parallel)
-
-
-wrapper_multi_conf = function(test_point) {
-  newdata = rbind(test_point, data_predict)
-  newmedian = depthMedian(newdata, depth_params = list(method = 'Tukey'))
-  depth_surface_vec = rowSums(t(t(newdata) - newmedian) ^ 2) #In this case I am using the Lˆ2 norm...
-  sum(depth_surface_vec[-1] >= depth_surface_vec[1]) / (n + 1)
-}
-
-#codice parallelizzato
-cl=makeCluster(parallel::detectCores())
-clusterExport(cl=cl,list('data_predict', 'depthMedian', 'n'))
-
-
-pval_surf = pbapply(xy_surface, 1, wrapper_multi_conf, cl=cl)
-data_plot = cbind(pval_surf, xy_surface)
-p_set = xy_surface[pval_surf > alpha, ]
-poly_points = p_set[chull(p_set), ]
-ggplot() +
-  geom_tile(data = data_plot, aes(EVALUADOS, P_Puntaje_, fill = pval_surf)) +
-  geom_point(data = data.frame(data_predict), aes(EVALUADOS, P_Puntaje_)) +
-  geom_polygon(
-    data = poly_points,
-    aes(EVALUADOS, P_Puntaje_),
-    color = 'red',
-    size = 1,
-    alpha = 0.01
-  )
-
-stopCluster(cl)
-
-
-
-#ho trovato un dataset con le densita di popolazione di tutta la colombia
-#l'ho ristretto a bogota, ma non è abbastanza preciso da darmi una variabilità evidente
-#infatti mi dice che la densita di popolazione è uguale in tutta bogota
-#quindi l'idea di provare a fare una scuola dove c'è piu popolazione e una dove ce n'è meno non si può fare
-
-density <- read_csv("col_general_2020.csv")
-
-head(density)
-
-summary(density)
-
-library(dplyr)
-library(ggplot2)
 library(sf)
 
-# Your data filtering
-density_bogota_filt <- density %>%
-  filter(latitude >= 4.45 & latitude <= 4.80 & longitude >= -74.23 & longitude <= -74)
 
-#10000 points
-density_bogota_filt <- density_bogota_filt[sample(nrow(density_bogota_filt), 10000), ]
+# Function to perform the analysis for a specific year
+perform_analysis <- function(year, data_predict) {
+  n_grid <- 20
+  grid_factor <- 0.25
+  alpha <- 0.1
+  n <- nrow(data_predict)
+  range_x <-
+    range(data_predict[, 1])[2] - range(data_predict[, 1])[1]
+  range_y <-
+    range(data_predict[, 2])[2] - range(data_predict[, 2])[1]
+  test_grid_x <- seq(
+    min(data_predict[, 1]) - grid_factor * range_x,
+    max(data_predict[, 1]) + grid_factor * range_x,
+    length.out = n_grid
+  )
+  test_grid_y <- seq(
+    min(data_predict[, 2]) - grid_factor * range_y,
+    max(data_predict[, 2]) + grid_factor * range_y,
+    length.out = n_grid
+  )
+  xy_surface <- expand.grid(test_grid_x, test_grid_y)
+  colnames(xy_surface) <- colnames(data_predict)
+  
+  wrapper_multi_conf <- function(test_point) {
+    newdata <- rbind(test_point, data_predict)
+    newmedian <-
+      depthMedian(newdata, depth_params = list(method = 'Tukey'))
+    depth_surface_vec <- rowSums(t(t(newdata) - newmedian) ^ 2)
+    sum(depth_surface_vec[-1] >= depth_surface_vec[1]) / (n + 1)
+  }
+  
+  cl <- makeCluster(parallel::detectCores())
+  clusterExport(cl = cl, list('data_predict', 'depthMedian', 'n'))
+  
+  pval_surf <- pbapply(xy_surface, 1, wrapper_multi_conf, cl = cl)
+  data_plot <- cbind(pval_surf, xy_surface)
+  p_set <- xy_surface[pval_surf > alpha, ]
+  poly_points <- p_set[chull(p_set), ]
+  
+  stopCluster(cl)
+  
+  ggplot() +
+    geom_tile(data = data_plot, aes_string(
+      x = names(data_predict)[1],
+      y = names(data_predict)[2],
+      fill = "pval_surf"
+    )) +
+    geom_point(data = data.frame(data_predict), aes_string(x = names(data_predict)[1], y = names(data_predict)[2])) +
+    geom_polygon(
+      data = poly_points,
+      aes_string(x = names(data_predict)[1], y = names(data_predict)[2]),
+      color = 'red',
+      size = 1,
+      alpha = 0.01
+    )
+}
 
-# Adjusted color scale
-ggplot(density_bogota_filt, aes(x = longitude, y = latitude, fill = col_general_2020)) +
-  geom_point(shape = 21, size = 2) +
-  scale_fill_viridis_c() +
-  theme_minimal() +
-  theme(legend.position = "bottom")
+# Loop through each year and perform the analysis
+for (year in 2019:2022) {
+  data_predict <-
+    extended_data[, c(paste0("EVALUADOS_", year), paste0("P_Puntaje_", year))]
+  print(perform_analysis(year, data_predict))
+}
+# ------------------------------------------------------------------------
 
-
-
-# prediction con 25 evaluados e diverse location
-#ho scelto 25 evaluados perche possiamo dire che il sindaco voleva creare una scuola di eccellenze
-#e come abbiamo visto le scuole piccole vanno meglio
-#ora proviamo a posizionare la scuola in qualche zona random e vediamo come performa
-
-# Calculate the median of X and Y coordinates
-median_x <- median(data$X)
-median_y <- median(data$Y)
-
-# Create a data frame for the median point
-median_point <- data.frame(X = median_x, Y = median_y)
-
-new_school_median <- data.frame(X=median_x, Y=median_y, EVALUADOS=25)
-
-#use fitted model to predict the response value for the new observation
-predict(full_model_gam_inter, newdata=new_school_median)
-
-
-#est point
-est_x <- -74.19
-est_y <- 4.62
-
-# Create a data frame for the est point
-est_point <- data.frame(X = est_x, Y = est_y)
-
-new_school_est <- data.frame(X=est_x, Y=est_y, EVALUADOS=25)
-
-#predict for the est point
-predict(full_model_gam_inter, newdata=new_school_est)
-
-#sud point
-sud_x <- -74.11
-sud_y <- 4.48
-
-# Create a data frame for the sud point
-sud_point <- data.frame(X = sud_x, Y = sud_y)
-
-new_school_sud <- data.frame(X=sud_x, Y=sud_y, EVALUADOS=25)
-
-#predict for the sud point
-predict(full_model_gam_inter, newdata=new_school_sud)
-
-# nord point
-nord_x <- -74.07
-nord_y <- 4.75
-
-# Create a data frame for the nord point
-nord_point <- data.frame(X = nord_x, Y = nord_y)
-
-new_school_nord <- data.frame(X=nord_x, Y=nord_y, EVALUADOS=25)
-
-#predict for the nord point
-predict(full_model_gam_inter, newdata=new_school_nord)
+# prediction with 25 evaluados in 4 different locations in bogota
 
 
-# Add the points to the final map
-final_map_with_median <- bogota.map +
-  geom_point(data = as.data.frame(coord), aes(x = X, y = Y), color = "gray", size = 0.1) +
-  geom_point(data = median_point, aes(x = X, y = Y), color = "yellow", size = 3) + 
-  geom_point(data = est_point, aes(x = X, y = Y), color = "orange", size = 3) +
-  geom_point(data = sud_point, aes(x = X, y = Y), color = "red", size = 3) +
-  geom_point(data = nord_point, aes(x = X, y = Y), color = "green", size = 3)
+
+# Load map data
+map <- read_sf("Data/poblacion-upz-bogota.geojson")
+
+# Create ggplot object for the map
+bogota.map <- ggplot(map) +
+  geom_sf(fill = "white") + theme_void()
 
 
-# Display the final map
-final_map_with_median
+# Function to perform prediction and create plot for a specific year
+perform_prediction <-
+  function(year,
+           full_model_gam_inter,
+           evaluados_col) {
+    # Calculate the median of X and Y coordinates
+    median_x <- median(extended_data$X)
+    median_y <- median(extended_data$Y)
+    
+    # Create a data frame for the median point
+    median_point <- data.frame(X = median_x, Y = median_y)
+    
+    new_school_median <-
+      data.frame(X = median_x,
+                 Y = median_y,
+                 evaluados_col = 25,
+                 CALENDARIO = 3,
+                 GENERO = 5
+      )
+    names(new_school_median)[3] <- evaluados_col
+    
+    # Prediction for the median point
+    median_prediction <-
+      predict(full_model_gam_inter, newdata = new_school_median)
+    
+    # Create points for est, sud, and nord locations
+    est_point <- data.frame(X = -74.19, Y = 4.62)
+    sud_point <- data.frame(X = -74.11, Y = 4.48)
+    nord_point <- data.frame(X = -74.07, Y = 4.75)
+    
+    # Create data frames for est, sud, and nord locations with 25 evaluados
+    new_school_est <-
+      data.frame(X = est_point$X,
+                 Y = est_point$Y,
+                 EVALUADOS = 25)
+    new_school_sud <-
+      data.frame(X = sud_point$X,
+                 Y = sud_point$Y,
+                 EVALUADOS = 25)
+    new_school_nord <-
+      data.frame(X = nord_point$X,
+                 Y = nord_point$Y,
+                 EVALUADOS = 25)
+    
+    # Predictions for est, sud, and nord locations
+    est_prediction <-
+      predict(full_model_gam_inter, newdata = new_school_est)
+    sud_prediction <-
+      predict(full_model_gam_inter, newdata = new_school_sud)
+    nord_prediction <-
+      predict(full_model_gam_inter, newdata = new_school_nord)
+    
+    
+    # Add the points to the final map
+    final_map <- bogota.map +
+      geom_point(data = extended_data,
+                 aes(x = X, y = Y),
+                 color = "gray",
+                 size = 0.1) +
+      geom_point(
+        data = median_point,
+        aes(x = X, y = Y),
+        color = "yellow",
+        size = 3
+      ) +
+      geom_point(
+        data = est_point,
+        aes(x = X, y = Y),
+        color = "orange",
+        size = 3
+      ) +
+      geom_point(data = sud_point,
+                 aes(x = X, y = Y),
+                 color = "red",
+                 size = 3) +
+      geom_point(
+        data = nord_point,
+        aes(x = X, y = Y),
+        color = "green",
+        size = 3
+      )
+    
+    # Print the final map
+    print(final_map)
+    
+    # Return the predictions
+    return(
+      list(
+        median = median_prediction,
+        est = est_prediction,
+        sud = sud_prediction,
+        nord = nord_prediction
+      )
+    )
+  }
 
+# Create an empty list to store the predictions
+predictions_list <- list()
 
-#con questo abbiamo visto che a nord andrebbe meglio
+# Loop through each year and perform the prediction
+for (year in 2019:2022) {
+  # Extract the GAM model for the current year
+  model <- gam_models(year, plot = FALSE, flag.pred = TRUE)
+  # Get evaluados_col for the current year
+  evaluados_col <- paste("EVALUADOS_", year, sep = "")
+  # Perform prediction and create plot
+  predictions <- perform_prediction(year, model, evaluados_col)
+  # Store the predictions in the list
+  predictions_list[[as.character(year)]] <- predictions
+}
 
+# Print the plots in a 2x2 grid
+par(mfrow = c(2, 2))
+for (year in 2019:2022) {
+  cat("Year:", year, "\n")
+  print(final_map)
+}
 
-# new map with the population density
-# Import a geojson or shapefile
-plob <- read_sf("poblacion-upz-bogota.geojson") 
-# potrebbero non essere sufficienti, perché ci sono scuole fuori dal confine della mappa
-bogota.plob.map <- ggplot(plob) +
-  geom_sf(fill = "white")
-bogota.plob.map
+# plot one by one
+for (year in 2019:2022) {
+  cat("Year:", year, "\n")
+  print(final_map)
+}

@@ -1,6 +1,38 @@
-data_years <- read.csv("data_years.csv")
+rm(list = ls())
+
+
+# load data
+extended_data <- read.csv("Data/extended_data_clean.csv")
 final_data <-
-  data_years[, c(2, 3, 73, 74, 9, 75, 10:19, 21, 64, 72)]
+  extended_data[, c(
+    "X",
+    "Y",
+    "P_Puntaje_2019",
+    "P_Puntaje_2020",
+    "P_Puntaje_2021",
+    "P_Puntaje_2022",
+    "EVALUADOS_2019",
+    "EVALUADOS_2020",
+    "EVALUADOS_2021",
+    "EVALUADOS_2022",
+    "Sector",
+    "CALENDARIO",
+    "GENERO",
+    "COD_LOCA",
+    "CLASE_TIPO",
+    "Categoria",
+    "ESTRATO",
+    "DENSITY",
+    "Thombre",
+    "Thombre_aprob",
+    "Tmujer",
+    "Tmujer_aprob"
+  )]
+map <- read_sf("Data/poblacion-upz-bogota.geojson")
+
+bogota.map <- ggplot(map) +
+  geom_sf(fill = "white") + theme_void()
+
 
 # i tried to plot the change between years in puntaje for each school in different localidades
 
@@ -20,8 +52,8 @@ plot.codloca <-
         max(final_data$P_Puntaje_2022) + 10
       )
     )
-    for (i in 1:nrow(data)) {
-      if (data$COD_LOCA[i] == codloca) {
+    for (i in 1:nrow(final_data)) {
+      if (final_data$COD_LOCA[i] == codloca) {
         lines(x = years,
               y = final_data[i, 3:6],
               col = rainbow(nrow(final_data))[i])
@@ -137,25 +169,28 @@ bogota.map +
 
 
 # getting the upz code in our dataset
-data_years <- read.csv("data_years.csv")
-colegios <- read.csv("colegios.csv")
-# Initialize a vector to store the values of upz
-upz_values <- numeric(nrow(data_years))
+extended_data <- read.csv("Data/Extended_data_clean.csv")
+colegios <- read.csv("Data/colegios.csv")
 
-# Loop over each row of data_years
-for (i in 1:nrow(data_years)) {
+# Initialize a vector to store the values of upz
+upz_values <- numeric(nrow(extended_data))
+
+
+# Loop over each row of extended_data
+for (i in 1:nrow(extended_data)) {
   # Check if COD_DANE12 is in colegios$DANE12_EST
-  if (data_years$COD_DANE12[i] %in% colegios$DANE12_EST) {
+  if (extended_data$COD_DANE12[i] %in% colegios$DANE12_EST) {
     # If it is, get the index where the condition is true
-    idx <- which(colegios$DANE12_EST == data_years$COD_DANE12[i])
+    idx <-
+      which(colegios$DANE12_EST == extended_data$COD_DANE12[i])[1]
     # Assign the corresponding COD_UPZ value to the correct index in upz_values
     upz_values[i] <- as.numeric(colegios$COD_UPZ[idx])
   }
 }
 
 
-# Add the upz_values vector as a new column named "upz" to data_years
-data_years <- cbind(data_years, upz = upz_values)
+# Add the upz_values vector as a new column named "upz" to extended_data
+extended_data <- cbind(extended_data, upz = upz_values)
 
 
 # plot according to upz in a map, every upz value is a different color without legend
@@ -167,7 +202,7 @@ plot.factor.upz <- function(factor) {
   col.lab <- setNames(col.ramp, levels(factor))
   
   final_map <- bogota.map +
-    geom_point(data = as.data.frame(data_years[, 2:3]),
+    geom_point(data = as.data.frame(extended_data[, 3:4]),
                aes(x = X, y = Y, color = factor),
                size = 1) +
     scale_color_manual(name = "UPZ", values = col.lab) +
@@ -175,11 +210,11 @@ plot.factor.upz <- function(factor) {
   final_map
 }
 
-data_years$upz <- factor(data_years$upz)
-plot.factor.upz(data_years$upz)
+extended_data$upz <- factor(extended_data$upz)
+plot.factor.upz(extended_data$upz)
 
 #final data
-final_data <- cbind(final_data, data_years$upz)
+final_data <- cbind(final_data, extended_data$upz)
 colnames(final_data)[ncol(final_data)] <- "Upz"
 
 
@@ -202,7 +237,7 @@ for (i in 1:nrow(final_data)) {
          y = final_data[i, 3:6])
 }
 
-# i think there is anything we can do with this
+# i think there isn't anything we can do with this
 
 # plot puntaje in years for every upz
 plot(
@@ -217,10 +252,10 @@ plot(
     max(final_data$P_Puntaje_2022) + 10
   )
 )
-for (i in 1:length(levels(data_years$upz))) {
+for (i in 1:length(levels(extended_data$upz))) {
   lines(x = years,
-        y = colMeans(final_data[data_years$upz == levels(data_years$upz)[i], 3:6]),
-        col = rainbow(length(levels(data_years$upz)))[i])
+        y = colMeans(final_data[extended_data$upz == levels(extended_data$upz)[i], 3:6]),
+        col = rainbow(length(levels(extended_data$upz)))[i])
 }
 
 
@@ -257,4 +292,3 @@ plot(
 )
 
 
-# ROW 517
