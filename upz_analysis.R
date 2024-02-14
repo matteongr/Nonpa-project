@@ -274,7 +274,8 @@ perform_hotspot_analysis <- function(year_data, year) {
   # Calculate the Gi using local_g_perm
   map_hot_spots <- map_nbs |>
     mutate(Gi = local_g_perm(P_Puntaje, nb, wt, nsim = 9999)
-           # nsim = number of Monte Carlo simulations (999 is default)) |>
+           # nsim = number of Monte Carlo simulations (999 is default)
+           ) |>
            unnest(Gi)
            
            # Cursory visualization
