@@ -47,8 +47,8 @@ perm_t_test=function(x,y,iter=1e3){
 # x.1 public
 # x.2 private
 
-x.1 <- data$P_Puntaje_2021[which(data$CLASE_TIPO %in% c(1,2,3))]
-x.2 <- data$P_Puntaje_2021[which(data$CLASE_TIPO %in% c(4,5,6))]
+x.1 <- data$P_Puntaje_2021[which(data$CLASE_TIPO == 0)]
+x.2 <- data$P_Puntaje_2021[which(data$CLASE_TIPO %in% 1)]
 
 perm_t_test(x.1, x.2)
 ```

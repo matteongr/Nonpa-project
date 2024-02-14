@@ -7,7 +7,6 @@ library(car)
 library(mgcv)
 library(rgl)
 library(splines)
-library(pbapply)
 library(knitr)
 library(kableExtra)
 library(tidyr)
@@ -39,25 +38,26 @@ gam_models <- function(year, plot, flag.pred) {
         puntaje_col,
         "~ s(X, bs = 'cr') + s(Y, bs = 'cr') + s(I(X * Y), bs = 'cr')"
       )
-    ), data = extended_data)
+    ), data = data)
   
-  # grid
-  X.grid <- seq(range(extended_data$X)[1],
-                range(extended_data$X)[2],
-                length.out = 100)
-  Y.grid <- seq(range(extended_data$Y)[1],
-                range(extended_data$Y)[2],
-                length.out = 100)
-  
-  grid <- expand.grid(X.grid, Y.grid)
-  names(grid) <- c('X', 'Y')
-  
-  pred_inter <- predict(model_gam_inter,
-                        newdata = data.frame(grid, inter = grid$X * grid$Y))
   
   if (plot) {
+    # grid
+    X.grid <- seq(range(data$X)[1],
+                  range(data$X)[2],
+                  length.out = 100)
+    Y.grid <- seq(range(data$Y)[1],
+                  range(data$Y)[2],
+                  length.out = 100)
+    
+    grid <- expand.grid(X.grid, Y.grid)
+    names(grid) <- c('X', 'Y')
+    
+    pred_inter <- predict(model_gam_inter,
+                          newdata = data.frame(grid, inter = grid$X * grid$Y))
+    
     persp3d(X.grid, Y.grid, pred_inter, col = 'yellow')
-    with(extended_data,
+    with(data,
          points3d(
            X,
            Y,
@@ -71,7 +71,7 @@ gam_models <- function(year, plot, flag.pred) {
   model_gam <-
     gam(as.formula(paste(
       puntaje_col, "~ s(X, bs = 'cr') + s(Y, bs = 'cr')"
-    )), data = extended_data)
+    )), data = data)
   
   ## coordinates + interaction + evaluados
   full_model_gam_inter <-
@@ -80,13 +80,13 @@ gam_models <- function(year, plot, flag.pred) {
         puntaje_col,
         "~ s(X, bs = 'cr') + s(Y, bs = 'cr') + s(I(X * Y), bs = 'cr') + s(get(evaluados_col), bs = 'cr')"
       )
-    ), data = extended_data)
+    ), data = data)
   
   # semiparametric
   model_gam_reduced <-
     gam(as.formula(paste(
       puntaje_col, "~ X + Y + s(get(evaluados_col), bs = 'cr')"
-    )), data = extended_data)
+    )), data = data)
   
   ## full model + some categorical (linear)
   full_model_gam_inter_2 <-
@@ -95,7 +95,7 @@ gam_models <- function(year, plot, flag.pred) {
         puntaje_col,
         "~ s(X, bs = 'cr') + s(Y, bs = 'cr') + s(I(X * Y), bs = 'cr') + s(get(evaluados_col), bs = 'cr') + as.factor(CALENDARIO) + as.factor(GENERO)"
       )
-    ), data = extended_data)
+    ), data = data)
   
   if (flag.pred) {
     return(full_model_gam_inter)
@@ -161,6 +161,7 @@ print(formatted_table)
 
 library(ggplot2)
 library(broom)
+library(pbapply)
 pboptions(type = 'none')
 library(dbscan)
 library(gridExtra)
@@ -185,11 +186,9 @@ perform_analysis <- function(year, data_predict) {
     range(data_predict[, 1])[2] - range(data_predict[, 1])[1]
   range_y <-
     range(data_predict[, 2])[2] - range(data_predict[, 2])[1]
-  test_grid_x <- seq(
-    min(data_predict[, 1]) - grid_factor * range_x,
-    max(data_predict[, 1]) + grid_factor * range_x,
-    length.out = n_grid
-  )
+  test_grid_x <- seq(min(data_predict[, 1]),
+                     max(data_predict[, 1]) + grid_factor * range_x,
+                     length.out = n_grid)
   test_grid_y <- seq(
     min(data_predict[, 2]) - grid_factor * range_y,
     max(data_predict[, 2]) + grid_factor * range_y,
@@ -217,19 +216,20 @@ perform_analysis <- function(year, data_predict) {
   stopCluster(cl)
   
   ggplot() +
-    geom_tile(data = data_plot, aes_string(
-      x = names(data_predict)[1],
-      y = names(data_predict)[2],
-      fill = "pval_surf"
-    )) +
-    geom_point(data = data.frame(data_predict), aes_string(x = names(data_predict)[1], y = names(data_predict)[2])) +
+    geom_tile(data = data_plot, aes(x = .data[[names(data_predict)[1]]],
+                                    y = .data[[names(data_predict)[2]]],
+                                    fill = pval_surf)) +
+    geom_point(data = data.frame(data_predict), aes(x = .data[[names(data_predict)[1]]],
+                                                    y = .data[[names(data_predict)[2]]])) +
     geom_polygon(
       data = poly_points,
-      aes_string(x = names(data_predict)[1], y = names(data_predict)[2]),
+      aes(x = .data[[names(data_predict)[1]]],
+          y = .data[[names(data_predict)[2]]]),
       color = 'red',
-      size = 1,
+      lwd = 1.0,
       alpha = 0.01
     )
+  
 }
 
 # Loop through each year and perform the analysis
@@ -238,6 +238,8 @@ for (year in 2019:2022) {
     extended_data[, c(paste0("EVALUADOS_", year), paste0("P_Puntaje_", year))]
   print(perform_analysis(year, data_predict))
 }
+
+
 # ------------------------------------------------------------------------
 
 # prediction with 25 evaluados in 4 different locations in bogota
@@ -254,28 +256,50 @@ bogota.map <- ggplot(map) +
 
 # Function to perform prediction and create plot for a specific year
 perform_prediction <-
-  function(year,
-           full_model_gam_inter,
-           evaluados_col) {
+  function(year) {
+    if (year < 2019 | year > 2022) {
+      stop("Year must be between 2019 and 2022")
+    } else {
+      puntaje_col <- paste("P_Puntaje_", year, sep = "")
+      evaluados_col <- paste("EVALUADOS_", year, sep = "")
+      
+      data <-
+        extended_data[, c("X",
+                          "Y",
+                          puntaje_col,
+                          evaluados_col,
+                          "CALENDARIO",
+                          "GENERO")]
+    }
+    
+    
+    full_model_gam_inter_2 <-
+      gam(as.formula(
+        paste(
+          puntaje_col,
+          "~ s(X, bs = 'cr') + s(Y, bs = 'cr') + s(I(X * Y), bs = 'cr') + s(get(evaluados_col), bs = 'cr') + as.factor(CALENDARIO) + as.factor(GENERO)"
+        )
+      ), data = extended_data)
+    
     # Calculate the median of X and Y coordinates
-    median_x <- median(extended_data$X)
-    median_y <- median(extended_data$Y)
+    median_x <- median(data$X)
+    median_y <- median(data$Y)
     
     # Create a data frame for the median point
     median_point <- data.frame(X = median_x, Y = median_y)
     
-    new_school_median <-
-      data.frame(X = median_x,
-                 Y = median_y,
-                 evaluados_col = 25,
-                 CALENDARIO = 3,
-                 GENERO = 5
-      )
-    names(new_school_median)[3] <- evaluados_col
+    new_school_median <- tibble(
+      "X" = as.numeric(median_x),
+      "Y" = as.numeric(median_y),
+      evaluados_col = as.numeric(25),
+      "CALENDARIO" = as.factor(3),
+      "GENERO" = as.factor(5)
+    )
+    classes <- sapply(new_school_median, class)
     
     # Prediction for the median point
     median_prediction <-
-      predict(full_model_gam_inter, newdata = new_school_median)
+      predict(full_model_gam_inter_2, newdata = as.data.frame(new_school_median))
     
     # Create points for est, sud, and nord locations
     est_point <- data.frame(X = -74.19, Y = 4.62)
@@ -283,59 +307,15 @@ perform_prediction <-
     nord_point <- data.frame(X = -74.07, Y = 4.75)
     
     # Create data frames for est, sud, and nord locations with 25 evaluados
-    new_school_est <-
-      data.frame(X = est_point$X,
-                 Y = est_point$Y,
-                 EVALUADOS = 25)
-    new_school_sud <-
-      data.frame(X = sud_point$X,
-                 Y = sud_point$Y,
-                 EVALUADOS = 25)
-    new_school_nord <-
-      data.frame(X = nord_point$X,
-                 Y = nord_point$Y,
-                 EVALUADOS = 25)
+    
     
     # Predictions for est, sud, and nord locations
     est_prediction <-
-      predict(full_model_gam_inter, newdata = new_school_est)
+      predict(full_model_gam_inter_2, newdata = new_school_est)
     sud_prediction <-
-      predict(full_model_gam_inter, newdata = new_school_sud)
+      predict(full_model_gam_inter_2, newdata = new_school_sud)
     nord_prediction <-
-      predict(full_model_gam_inter, newdata = new_school_nord)
-    
-    
-    # Add the points to the final map
-    final_map <- bogota.map +
-      geom_point(data = extended_data,
-                 aes(x = X, y = Y),
-                 color = "gray",
-                 size = 0.1) +
-      geom_point(
-        data = median_point,
-        aes(x = X, y = Y),
-        color = "yellow",
-        size = 3
-      ) +
-      geom_point(
-        data = est_point,
-        aes(x = X, y = Y),
-        color = "orange",
-        size = 3
-      ) +
-      geom_point(data = sud_point,
-                 aes(x = X, y = Y),
-                 color = "red",
-                 size = 3) +
-      geom_point(
-        data = nord_point,
-        aes(x = X, y = Y),
-        color = "green",
-        size = 3
-      )
-    
-    # Print the final map
-    print(final_map)
+      predict(full_model_gam_inter_2, newdata = new_school_nord)
     
     # Return the predictions
     return(
@@ -353,25 +333,8 @@ predictions_list <- list()
 
 # Loop through each year and perform the prediction
 for (year in 2019:2022) {
-  # Extract the GAM model for the current year
-  model <- gam_models(year, plot = FALSE, flag.pred = TRUE)
-  # Get evaluados_col for the current year
-  evaluados_col <- paste("EVALUADOS_", year, sep = "")
   # Perform prediction and create plot
-  predictions <- perform_prediction(year, model, evaluados_col)
+  predictions <- perform_prediction(year)
   # Store the predictions in the list
   predictions_list[[as.character(year)]] <- predictions
-}
-
-# Print the plots in a 2x2 grid
-par(mfrow = c(2, 2))
-for (year in 2019:2022) {
-  cat("Year:", year, "\n")
-  print(final_map)
-}
-
-# plot one by one
-for (year in 2019:2022) {
-  cat("Year:", year, "\n")
-  print(final_map)
 }
