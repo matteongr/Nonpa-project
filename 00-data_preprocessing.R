@@ -157,6 +157,16 @@ clean_data <- data_full[clean_cols]
 write.csv(clean_data, file = "Data/extended_data_clean.csv", row.names = F)
 
 
+## Import the data of individual students
+
+# The file is to big to be uploaded on GitHub so it has to be downloaded manually from the link in the Readme.
+# data_students <- read.csv("Data/Saber_2019-_2024.csv")
+
+# Create sub set only for Bogota
+# data_bogota <- data_students[which(data_students$COLE_DEPTO_UBICACION == "BOGOTÁ"),]
+# write.csv(data_bogota, "Data/data_students.csv") # Export
+
+##
 
 ###===============================Description of variables========================###
 ###===============================================================================###
