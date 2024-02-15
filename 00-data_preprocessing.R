@@ -156,8 +156,26 @@ clean_cols <- c("COD_DANE12", "COLEGIO_SE", "X", "Y", "P_Puntaje_2021", "EVALUAD
 clean_data <- data_full[clean_cols]
 write.csv(clean_data, file = "Data/extended_data_clean.csv", row.names = F)
 
-###===============================================================================###
+
+
+###===============================Description of variables========================###
 ###===============================================================================###
 
 
+# COD_DANE12 --> unique identifier of the school
+# COLEGIO_SE --> name of the school
+# X,Y --> latitude and longitude
+# P_Puntaje_ --> average score of the school
+# EVALUADOS --> number of students evaluated
+# Sector --> program followed by the school
+# CALENDARIO --> when the school begins (A FOR JANUARY or B FOR AUGUST)
+# GENERO --> what type of school (1 FOR ALL-GIRLS, 3 FOR ALL-BOYS, 5 FOR MIXED)
+# COD_LOCA --> code referring to one of the neighborhood in the city
+# NATU_JUR --> type of school (1 FOR OFFICIAL, 2 FOR NON-OFFICIAL)
+# CLASE_TIPO --> type of school (1 FOR PRIVATE, 0 FOR PUBLIC)
+# Categoria --> category of the school (0 FOR NON APPLICABLE, 1 FOR A+, 2 FOR A, 3 FOR B, 4 FOR C, 5 FOR D)
+# Thombre_aprob, Tmujer_aprob --> passing rate of the school
+# Thombre, Tmujer --> dropout rate of the school
+# ESTRATO --> socioeconomic status of the school
+# DENSITY --> population density of the neighborhood per upz code
 
