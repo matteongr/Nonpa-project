@@ -6,16 +6,6 @@ output: html_notebook
 ```{r}
 # Import the data
 data_bogota <- read.csv("Data/data_students.csv")
-
-df_plot <- data_bogota[c("ESTU_FECHANACIMIENTO",
-                         "ESTU_INSE_INDIVIDUAL",
-                         "PUNT_GLOBAL")]
-df_plot[,1] <- as.numeric(substr(df_plot[,1], 7, 10)) # take only the year of birth
-df_plot[,2] <- as.numeric(df_plot[,2])
-df_plot[,3] <- as.numeric(df_plot[,3])
-df_plot <- df_plot[which(df_plot$ESTU_FECHANACIMIENTO > 1900),]
-
-plot(df_plot)
 ```
 
 # ANALYSIS OF PEERS SES
@@ -38,14 +28,6 @@ for (i in 1:nrow(data_schools)){
 # Add the new column to the schools data set
 data_schools <- cbind(data_schools, indiv_SES = mean_SES)
 data_schools <- na.omit(data_schools)
-```
-
-```{r}
-# Check the significance of the new column
-plot(data_schools$indiv_SES, data_schools$P_Puntaje_2021)
-
-summary(lm(P_Puntaje_2021 ~ indiv_SES,
-           data = data_schools))
 ```
 
 ```{r}
@@ -72,7 +54,7 @@ df_reg <- na.omit(df_reg)
 
 ```{r}
 # Separate in train/test to evaluate performance
-sampled <- sample(c(T,F), nrow(df_reg), replace = T, prob = c(0.5, 0.5))
+sampled <- sample(c(T,F), nrow(df_reg), replace = T, prob = c(0.7, 0.3))
 df_reg_train <- df_reg[sampled,]
 df_reg_test <- df_reg[!sampled,]
 
@@ -108,9 +90,20 @@ MSE_indiv
 Either with R^2 or with test set we can see that the peers mean SES is as good (even better) than the individual SES.
 
 ```{r}
-length(unique(df_reg$mean_ses))
-length(unique(df_reg$ESTU_INSE_INDIVIDUAL))
+# Plot the covariates for the regressions
+par(mfrow = c(1,2))
+
+plot(df_reg$mean_ses, df_reg$PUNT_GLOBAL, pch = 16, cex = 0.5,
+     main = "Scores vs peers SES",
+     xlab = "peers SES", ylab = "Scores")
+abline(model_peers, col = "red")
+
+plot(df_reg$ESTU_INSE_INDIVIDUAL, df_reg$PUNT_GLOBAL, pch = 16, cex = 0.5,
+     main = "Scores vs individual SES",
+     xlab = "individual SES", ylab = "Scores")
+abline(model_indiv, col = "red")
 ```
+
 
 This is a significant result knowing that there are much less individual values for peer SES.
 
