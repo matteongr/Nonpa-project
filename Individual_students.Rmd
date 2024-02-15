@@ -2,16 +2,9 @@
 title: "R Notebook"
 output: html_notebook
 ---
-# Import the original dataset
-```{r}
-# data_students <- read.csv("Data/Saber_2019-_2024.csv")
-```
 
-# Create sub set only for Bogota
 ```{r}
-# data_bogota <- data_students[which(data_students$COLE_DEPTO_UBICACION == "BOGOTÁ"),]
-# write.csv(data_bogota, "Data/data_students.csv")
-
+# Import the data
 data_bogota <- read.csv("Data/data_students.csv")
 
 df_plot <- data_bogota[c("ESTU_FECHANACIMIENTO",
