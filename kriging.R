@@ -12,17 +12,17 @@ library(npsp)
 library(sf)
 library(sp)
 
+#--------------------------------------------------------------------------
 
-extended_data <- read.csv("Data/extended_data_clean.csv")
+# NOTE: IT ONLY WORKS FOR CERTAIN SEEDS
+
+# -------------------------------------------------------------------------
+
+
+final_data <- read.csv("Data/extended_data_clean.csv")
 map <- read_sf("Data/poblacion-upz-bogota.geojson")
 
 map <- as(st_as_sf(map), "Spatial")
-
-# trying to get a sample of my data to reduce singularity
-num_rows <- 150
-sampled_rows <-
-  sample(nrow(extended_data), num_rows, replace = FALSE)
-final_data <- extended_data[sampled_rows,]
 
 
 spatial_data <-
@@ -46,15 +46,15 @@ data <- attr$data
 lp <-
   locpol(
     x = coord,
-    y = data$P_Puntaje_2019,
+    y = data$P_Puntaje_2021,
     nbin = c(60, 60),
-    h = diag(c(5, 5))
+    h = diag(c(5, 5)),
   )
 lp <- mask(lp, window = map)
 
 simage(
   lp,
-  slim = range(data$P_Puntaje_2019),
+  slim = range(data$P_Puntaje_2021),
   main = "Trend estimates",
   col = jet.colors(256),
   xlab = "Longitude",
@@ -65,14 +65,16 @@ simage(
 
 # bandwidth selection
 
-bin <- binning(coord, data$P_Puntaje_2019)
+bin <- binning(coord, data$P_Puntaje_2021)
 lp0.h <- h.cv(bin)$h
 lp0 <- locpol(bin, h = lp0.h, hat.bin = TRUE)
 
 
 # Compute semivariogram
+max_lag <- 0.2
+
 svar.bin <-
-  svariso(coord, residuals(lp0), nlags = 60, maxlag = 0.25)
+  svariso(coord, residuals(lp0), nlags = 60, maxlag = max_lag)
 
 # Perform bandwidth selection
 svar.h <- h.cv(svar.bin)$h
@@ -81,7 +83,7 @@ svar.np <- np.svar(svar.bin, h = svar.h)
 svar.np2 <- np.svariso.corr(
   lp0,
   nlags = 60,
-  maxlag = 0.25,
+  maxlag = max_lag,
   h = svar.h,
   plot = F
 )
@@ -119,14 +121,41 @@ legend(
 )
 
 
+# set random seed
+current_seed <- round(runif(1, 1, 100000), 0)
+set.seed(41608)
+
+# trying to get a sample of my data to reduce singularity
+num_rows <- 150
+sampled_rows <-
+  sample(nrow(final_data), num_rows, replace = FALSE)
+final_data <- final_data[sampled_rows,]
+
+# remake of spatial data
+spatial_data <-
+  SpatialPointsDataFrame(
+    coords = final_data[, c("X", "Y")],
+    data = final_data[, c("P_Puntaje_2019",
+                          "P_Puntaje_2020",
+                          "P_Puntaje_2021",
+                          "P_Puntaje_2022")],
+    proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84")
+  )
+
+attr <- attributes(spatial_data)
+coord <- attr$coords
+data <- attr$data
+
+
+
 # automatic modelling
 execution_time <- system.time({
   geomod <-
     np.fitgeo(
       x = coord,
-      y = data$P_Puntaje_2019,
-      nbin = c(60, 60),
-      maxlag = 0.25,
+      y = data$P_Puntaje_2021,
+      nbin = c(120, 120),
+      maxlag = max_lag,
       svm.resid = T,
       window = map,
       h = lp0.h
@@ -147,7 +176,7 @@ simage(
   krig.grid,
   'kpred',
   main = 'Kriging predictions',
-  slim = range(data$P_Puntaje_2019),
+  slim = range(data$P_Puntaje_2021),
   xlab = "Longitude",
   ylab = "Latitude" ,
   col = jet.colors(256),

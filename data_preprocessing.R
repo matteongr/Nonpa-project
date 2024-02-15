@@ -1,5 +1,9 @@
 ###================= Merge new variables to the original dataset =================###
 ###===============================================================================###
+
+rm(list = ls())
+
+
 library(sf)
 
 # Import the necessary datasets
@@ -13,7 +17,7 @@ density <- read.csv("Data/poblacion-upz-bogota.csv", sep = ";")
 Private <- ifelse(raw_data$CLASE_TIPO %in% c(4, 5, 6), 1, 0) #now 1 --> private; 0--> public
 raw_data$CLASE_TIPO <- Private
 
-# Calendario A and B
+# Select only CALENDARIO A and B
 raw_data <- raw_data[which(raw_data$CALENDARIO %in% c(1,3)),]
 
 # Convert coordinates to Lat Long
@@ -141,7 +145,7 @@ colnames(data_full)[which(colnames(data_full)== "EVALUADOS")] <- "EVALUADOS_2022
 
 # Finally remove duplicates and export the extended data set
 data_full <- data_full[!duplicated(data_full$COD_DANE12),]
-write.csv(data_full, file = "Data/extended_data.csv", row.names = F)
+# write.csv(data_full, file = "Data/extended_data.csv", row.names = F)
 
 # Remove some columns to have a clean data and export it
 clean_cols <- c("COD_DANE12", "COLEGIO_SE", "X", "Y", "P_Puntaje_2021", "EVALUADOS_2021",
