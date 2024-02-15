@@ -16,10 +16,9 @@ This project focuses on analyzing school scores in Bogota, Colombia, using nonpa
   - `poblacion-upz-bogota.csv`: provides additional data on the density of different areas (UPZs).
   - `tabrobacionofupz.csv`: Pass rates in 2021
   - `tdesercionofupz.csv`: Fail rates in 2021
-  [Dataset scores and map](https://datosabiertos.bogota.gov.co/dataset/resultados-pruebas-saber-11-bogota-d-c)
 
+  [Dataset scores and map](https://datosabiertos.bogota.gov.co/dataset/resultados-pruebas-saber-11-bogota-d-c)
   [Dataset fail and pass rates](https://datosabiertos.bogota.gov.co/en/dataset/tasa-de-desercion-escolar-en-colegios-oficiales-por-upz-bogota-d-c)
-  
   [Dataset upz](https://datosabiertos.bogota.gov.co/dataset/colegios-bogota-d-c)
 
 
