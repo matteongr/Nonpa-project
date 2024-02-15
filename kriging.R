@@ -123,7 +123,7 @@ legend(
 
 # set random seed
 current_seed <- round(runif(1, 1, 100000), 0)
-set.seed(current_seed)
+set.seed(41608)
 
 # trying to get a sample of my data to reduce singularity
 num_rows <- 150
@@ -158,7 +158,8 @@ execution_time <- system.time({
       maxlag = max_lag,
       svm.resid = T,
       window = map,
-      h = lp0.h
+      h = lp0.h,
+      plot = T
     )
 })[["elapsed"]]
 

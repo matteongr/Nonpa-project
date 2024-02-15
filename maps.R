@@ -1,7 +1,16 @@
 rm(list = ls())
 
 
+# set directory
+# Get the path to the directory containing the current script
+# Set the working directory to the current directory
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+# load libraries
 library(ggplot2)
+library(ggpubr)
+library(sf)
+
 
 data <- read.csv("Data/extended_data_clean.csv")
 map <- read_sf("Data/poblacion-upz-bogota.geojson")
@@ -113,7 +122,6 @@ data$COD_LOCA <- factor(data$COD_LOCA)
 
 
 # plot all the maps
-library(ggpubr)
 ggarrange(
   plot.factor.genero(data$GENERO),
   plot.factor.calendario(data$CALENDARIO),

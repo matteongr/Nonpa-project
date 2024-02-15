@@ -61,13 +61,10 @@ final_data <-
     "EVALUADOS_2021",
     "EVALUADOS_2022",
     "upz",
-    "Sector",
     "CALENDARIO",
     "GENERO",
     "COD_LOCA",
     "CLASE_TIPO",
-    "Categoria",
-    "ESTRATO",
     "DENSITY",
     "Thombre",
     "Thombre_aprob",
@@ -114,78 +111,32 @@ update_map <- function(map, year, data, upz_low) {
 }
 
 
-performance <- function(year) {
-  if (year < 2019 | year > 2022) {
-    stop("Year must be between 2019 and 2022")
-  }
-  # Define variables based on the year
-  Puntaje <- switch(
-    as.character(year),
-    "2019" = upz_means$P_Puntaje_2019,
-    "2020" = upz_means$P_Puntaje_2020,
-    "2021" = upz_means$P_Puntaje_2021,
-    "2022" = upz_means$P_Puntaje_2022
-  )
-  
-  
-  map_name <- as.character(year)
-  # spline interpolation
-  knots <-
-    quantile(as.numeric(upz_means$Upz), probs = c(0.25, 0.5, 0.75))
-  boundary_knots <-
-    quantile(as.numeric(upz_means$Upz), probs = c(0.05, 0.95))
-  
-  new_data <-
-    with(upz_means, data.frame(Upz = seq(range(Upz)[1], range(Upz)[2], by = 0.1)))
-  
-  model_ns = lm(Puntaje ~ ns(Upz, knots = knots, Boundary.knots = boundary_knots),
-                data = upz_means)
-  preds = predict(model_ns, new_data, se = T)
-  se.bands = cbind(preds$fit + 2 * preds$se.fit , preds$fit - 2 * preds$se.fit)
-  
+# add a line at the 25th percentile of the scores
+par(mfrow = c(2, 2))
+for (i in 2:5) {
   plot(
-    upz_means$Upz ,
-    Puntaje,
-    xlim = range(upz_means$Upz),
-    cex = 0.5,
-    col = "darkgrey",
+    upz_means$Upz,
+    upz_means[, i],
     xlab = "Upz",
     ylab = "Puntaje",
-    main = paste("Puntaje per upz in", year)
+    main = colnames(upz_means)[i]
   )
-  lines(new_data$Upz, preds$fit , lwd = 2, col = " blue")
-  matlines(new_data$Upz,
-           se.bands ,
-           lwd = 1,
-           col = " blue",
-           lty = 3)
-  
-  
-  # gettin upz codes for school under 280 in scores according to model_ns
-  # initialize upz_low
-  upz_low <- c()
-  for (i in 1:nrow(upz_means)) {
-    fit <- model_ns$fitted.values[i]
-    if (model_ns$fitted.values[i] < 280) {
-      upz_low <- c(upz_low, upz_means[i, 1])
-    }
-  }
-  
-  
-  return(upz_low)
-  
+  abline(h = quantile(upz_means[, i], prob = 0.25),
+         col = 'red')
 }
 
-
-par(mfrow = c(2, 2))
-# Initialize an empty list to store the results
+  
+# gettting the upz with the lowest 25th percentile for each year
 upz_low_list <- list()
-
-# Loop over each year
 for (year in 2019:2022) {
-  # Call the performance function for the current year and store the result in the list
-  upz_low_list[[as.character(year)]] <- performance(year)
+  col_index <- year - 2017  # Calculate the column index based on the year
+  upz_low_list[[as.character(year)]] <- 
+    upz_means$Upz[upz_means[, col_index] < quantile(upz_means[, col_index], prob = 0.25)]
 }
+
+
+
+
 
 # Find the maximum length of the upz_low lists
 max_length <- max(sapply(upz_low_list, length))
@@ -223,9 +174,6 @@ for (i in 1:4) {
 # ---------------------------------------------------------
 
 # HOTSPOT ANALYSIS
-
-
-
 
 
 perform_hotspot_analysis <- function(year_data, year) {

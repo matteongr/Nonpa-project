@@ -1,7 +1,13 @@
 rm(list = ls())
 
-## ---- SOME REGRESSION MODELS
 
+# set directory
+# Get the path to the directory containing the current script
+# Set the working directory to the current directory
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+
+# load libraries
 library(ISLR2)
 library(car)
 library(mgcv)
@@ -148,95 +154,9 @@ model_table_wide <- spread(model_table, Year, R_squared)
 
 # Convert the data frame to a formatted table
 formatted_table <- kable(model_table_wide, "html") %>%
-  kable_styling(full_width = FALSE)
+  kable_styling(full_width = FALSE) %>%
+  add_header_above(c("R-Squared of GAM models" = 5))
+
 # Print the table
 print(formatted_table)
-
-
-
-# ------------------------------------------------------------------------
-
-
-#FULL CONFORMAL: Number of students vs puntaje
-
-library(ggplot2)
-library(broom)
-library(pbapply)
-pboptions(type = 'none')
-library(dbscan)
-library(gridExtra)
-library(conformalInference)
-library(MASS)
-library(DepthProc)
-library(hexbin)
-library(aplpack)
-library(robustbase)
-library(MDBED)
-library(parallel)
-library(sf)
-
-
-# Function to perform the analysis for a specific year
-perform_analysis <- function(year, data_predict) {
-  n_grid <- 20
-  grid_factor <- 0.25
-  alpha <- 0.1
-  n <- nrow(data_predict)
-  range_x <-
-    range(data_predict[, 1])[2] - range(data_predict[, 1])[1]
-  range_y <-
-    range(data_predict[, 2])[2] - range(data_predict[, 2])[1]
-  test_grid_x <- seq(min(data_predict[, 1]),
-                     max(data_predict[, 1]) + grid_factor * range_x,
-                     length.out = n_grid)
-  test_grid_y <- seq(
-    min(data_predict[, 2]) - grid_factor * range_y,
-    max(data_predict[, 2]) + grid_factor * range_y,
-    length.out = n_grid
-  )
-  xy_surface <- expand.grid(test_grid_x, test_grid_y)
-  colnames(xy_surface) <- colnames(data_predict)
-  
-  wrapper_multi_conf <- function(test_point) {
-    newdata <- rbind(test_point, data_predict)
-    newmedian <-
-      depthMedian(newdata, depth_params = list(method = 'Tukey'))
-    depth_surface_vec <- rowSums(t(t(newdata) - newmedian) ^ 2)
-    sum(depth_surface_vec[-1] >= depth_surface_vec[1]) / (n + 1)
-  }
-  
-  cl <- makeCluster(parallel::detectCores())
-  clusterExport(cl = cl, list('data_predict', 'depthMedian', 'n'))
-  
-  pval_surf <- pbapply(xy_surface, 1, wrapper_multi_conf, cl = cl)
-  data_plot <- cbind(pval_surf, xy_surface)
-  p_set <- xy_surface[pval_surf > alpha, ]
-  poly_points <- p_set[chull(p_set), ]
-  
-  stopCluster(cl)
-  
-  ggplot() +
-    geom_tile(data = data_plot, aes(x = .data[[names(data_predict)[1]]],
-                                    y = .data[[names(data_predict)[2]]],
-                                    fill = pval_surf)) +
-    geom_point(data = data.frame(data_predict), aes(x = .data[[names(data_predict)[1]]],
-                                                    y = .data[[names(data_predict)[2]]])) +
-    geom_polygon(
-      data = poly_points,
-      aes(x = .data[[names(data_predict)[1]]],
-          y = .data[[names(data_predict)[2]]]),
-      color = 'red',
-      lwd = 1.0,
-      alpha = 0.01
-    )
-  
-}
-
-# Loop through each year and perform the analysis
-for (year in 2019:2022) {
-  data_predict <-
-    extended_data[, c(paste0("EVALUADOS_", year), paste0("P_Puntaje_", year))]
-  print(perform_analysis(year, data_predict))
-}
-
 
