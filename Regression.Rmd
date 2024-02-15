@@ -1,0 +1,169 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(sf)
+library(ggplot2)
+library(splines)
+library(np)
+library(mgcv)
+library(ISLR2)
+library(car)
+library(sp)
+library(rgl)
+library(pbapply)
+library(devtools) 
+library(visreg)
+library(mgcViz)
+library(progress)
+```
+
+```{r}
+data_bogota <- read.csv("Data/data_students.csv")
+# Import the schools dataset
+extended_data <- read.csv("Data/Extended_data_clean.csv")
+
+# Calculate the mean individual SES for each school and add it as a new column
+mean_SES <- c()
+for (i in 1:nrow(extended_data)){
+  idx <- which(data_bogota$COLE_COD_DANE_SEDE == extended_data$COD_DANE12[i])
+  INSE <- data_bogota$ESTU_INSE_INDIVIDUAL[idx]
+  INSE <- INSE[which(INSE != "-")]
+  SES_i <- na.omit(as.numeric(INSE))
+  mean_SES <- c(mean_SES, mean(SES_i))
+}
+
+# Add the new column to the schools data set
+extended_data <- cbind(extended_data, indiv_SES = mean_SES)
+extended_data <- na.omit(extended_data)
+```
+
+```{r}
+# Plot to see the relation between variables
+plot(extended_data$EVALUADOS_2021, extended_data$P_Puntaje_2021,
+     main = "Score vs Num. of students",
+     xlab = "Num. of students", ylab = "Score")
+plot(extended_data$DENSITY, extended_data$P_Puntaje_2021,
+     main = "Score vs Density",
+     xlab = "Density", ylab = "Score")
+plot(extended_data$indiv_SES, extended_data$P_Puntaje_2021,
+     main = "Score vs Indiv. SES",
+     xlab = "Indiv. SES", ylab = "Score")
+```
+
+
+```{r}
+# Separate the data into train-test
+sampled <- sample(c(T,F), nrow(extended_data), replace = T, prob = c(0.8, 0.2))
+df_reg_train <- extended_data[sampled,]
+df_reg_test <- extended_data[!sampled,]
+```
+
+```{r}
+# model using the coordinates (s(x,y) tiene conto anche delle interazioni perché vado a smoothare congiuntamente)
+model <- mgcv::gam(P_Puntaje_2021 ~ s(X, Y) + s(EVALUADOS_2021,bs='cr') +
+                     s(DENSITY, bs ='cr') + as.factor(CLASE_TIPO) + indiv_SES,
+                   data = df_reg_train)
+
+
+summary(model)
+plot(model)
+shapiro.test(model$residuals)
+
+vis.gam(model, view = c("X", "Y"), plot.type = "persp")
+```
+
+```{r}
+model$coefficients[2]
+model$coefficients[3]
+```
+
+
+```{r}
+# Test for the individual coefficients
+
+T0_x1 <- abs(model$coefficients[[2]]) # CLASE_TIPO
+T0_x2 <- abs(model$coefficients[[3]]) # SES
+
+
+regr.H01 <- mgcv::gam(P_Puntaje_2021 ~ s(X, Y) + s(EVALUADOS_2021,bs='cr') +
+                     s(DENSITY, bs ='cr') + indiv_SES,
+                   data = df_reg_train)
+residuals.H01 <- regr.H01$residuals # compute the residuals of each model to permutate them
+
+regr.H02 <- mgcv::gam(P_Puntaje_2021 ~ s(X, Y) + s(EVALUADOS_2021,bs='cr') +
+                     s(DENSITY, bs ='cr') + as.factor(CLASE_TIPO),
+                   data = df_reg_train)
+residuals.H02 <- regr.H02$residuals
+
+B <- 500
+n <- nrow(df_reg_train)
+T_H01 <- T_H02 <- numeric(B)
+
+for(perm in 1:B){
+  permutation <- sample(n)
+  
+  residuals.H01.perm <- residuals.H01[permutation]
+  Y.perm.H01 <- regr.H01$fitted.values + residuals.H01.perm
+  model_i1 <- mgcv::gam(Y.perm.H01 ~ s(X, Y) + s(EVALUADOS_2021,bs='cr') +
+                     s(DENSITY, bs ='cr') + as.factor(CLASE_TIPO) + indiv_SES,
+                   data = df_reg_train)
+  T_H01[perm] <- abs(abs(model_i1$coefficients[[2]]))
+  
+  residuals.H02.perm <- residuals.H02[permutation]
+  Y.perm.H02 <- regr.H02$fitted.values + residuals.H02.perm
+  model_i2 <- mgcv::gam(Y.perm.H02 ~ s(X, Y) + s(EVALUADOS_2021,bs='cr') +
+                     s(DENSITY, bs ='cr') + as.factor(CLASE_TIPO) + indiv_SES,
+                   data = df_reg_train)
+  T_H02[perm] <- abs(abs(model_i2$coefficients[[3]]))
+}
+
+sum(T_H01>=T0_x1)/B
+sum(T_H02>=T0_x2)/B
+```
+
+```{r}
+# Reduced model without the covariate CLASE_TIPO
+model_red <- mgcv::gam(P_Puntaje_2021 ~ s(X, Y) + s(EVALUADOS_2021,bs='cr') +
+                     s(DENSITY, bs ='cr') + indiv_SES,
+                   data = df_reg_train)
+
+
+summary(model_red)
+plot(model_red)
+shapiro.test(model_red$residuals)
+
+vis.gam(model_red, view = c("X", "Y"), plot.type = "persp")
+```
+
+
+```{r}
+pred <- predict(model_red, df_reg_test)
+mean(abs(pred - df_reg_test$P_Puntaje_2021))
+sd(abs(pred - df_reg_test$P_Puntaje_2021))
+```
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
