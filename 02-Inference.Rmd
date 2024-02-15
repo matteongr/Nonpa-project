@@ -48,7 +48,7 @@ perm_t_test=function(x,y,iter=1e3){
 # x.2 private
 
 x.1 <- data$P_Puntaje_2021[which(data$CLASE_TIPO == 0)]
-x.2 <- data$P_Puntaje_2021[which(data$CLASE_TIPO %in% 1)]
+x.2 <- data$P_Puntaje_2021[which(data$CLASE_TIPO == 1)]
 
 perm_t_test(x.1, x.2)
 ```
@@ -146,12 +146,8 @@ There is statistical evidence to assure that there is a difference in the scores
 ```{r}
 # see whether the number of students is relevant. 
 quantile(data$EVALUADOS_2021,probs=c(0.25,0.5,0.75))
-#25,49,75
-#tenere la mediana mi sembrava un brutto treshold, quindi ho messo
-#100 per dividere tra scuole piccole e grandi, se avete
-#un treshold migliore modificate il codice --
 
-med <- median(data$EVALUADOS)
+# we use as a threshold 92 students
 small_schools = data[which(data$EVALUADOS_2021<=92),]
 big_schools = data[which(data$EVALUADOS_2021>92),]
 
@@ -197,3 +193,12 @@ hist(big_schools$P_Puntaje_2021,col="blue")
 By grouping the schools into small (< quant 75%) and big (> quant 75%) we find a signifincant difference between the scores.
 
 
+```{r}
+boxplot(list("Small" = small_schools$P_Puntaje_2021, "Big" = big_schools$P_Puntaje_2021),
+        main = "Scores of small vs big schools",
+        xlab = "Type of school",
+        ylab = "Score",
+        col = c("red", "cyan")
+        )
+
+```

@@ -61,6 +61,8 @@ This project focuses on analyzing school scores in Bogota, Colombia, using nonpa
   - `sfdep`: Computes spatially filtered dependence.
   - `readr`: Simplifies data import from flat files.
   - `sp`: Provides classes and methods for spatial data.
+  - `visreg`: Used for visualizing regression models.
+  - `mgcViz`: Provides visualization tools for generalized additive models.
   - `npsp`: Implements non-parametric statistical tests. To be installed from Github:
 ```R
 install.packages('https://github.com/rubenfcasal/npsp/releases/download/v0.7-10/npsp_0.7-10.zip',repos = NULL)
