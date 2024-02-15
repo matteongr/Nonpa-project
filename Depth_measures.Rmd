@@ -5,26 +5,55 @@ output: html_notebook
 
 
 ```{r}
+rm(list = ls())
+
+
+# set directory
+# Get the path to the directory containing the current script
+# Set the working directory to the current directory
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+
+# load libraries
 library(aplpack)
 
+extended_data <- read.csv("Data/Extended_data_clean.csv")
+data <- read.csv("Data/data_2021.csv")
+new_data <-
+  merge(extended_data, with(
+    data,
+    cbind(
+      COD_DANE12,
+      P_Lectura,
+      P_Matemati,
+      P_Ciencias,
+      P_Sociales,
+      P_Ingles
+    )
+  ), by = "COD_DANE12")
 
-data_prova <- data[,c(3, 5:9)]
+data_prova <- new_data[, c(5, 26:30)]
 set.seed(2024)
 ind_outlying_obs <- c()
-for (i in 1:5){
-  for (j in ((i+1):6)){
-    col_names <- c(names(data_prova)[i], names(data_prova)[j])  # Get column names for current bagplot
-    x <- data_prova[, i] + rnorm(nrow(data_prova), 0, 0.4)  # Add jitter to x-axis
-    y <- data_prova[, j] + rnorm(nrow(data_prova), 0, 0.4)  # Add jitter to y-axis
+for (i in 1:5) {
+  for (j in ((i + 1):6)) {
+    col_names <-
+      c(names(data_prova)[i], names(data_prova)[j])  # Get column names for current bagplot
+    x <-
+      data_prova[, i] + rnorm(nrow(data_prova), 0, 0.4)  # Add jitter to x-axis
+    y <-
+      data_prova[, j] + rnorm(nrow(data_prova), 0, 0.4)  # Add jitter to y-axis
     df_i <- cbind(x, y)
-    bagplot_i <- compute.bagplot(df_i)  # Set x-axis and y-axis labels with column names
+    bagplot_i <-
+      compute.bagplot(df_i)  # Set x-axis and y-axis labels with column names
     outliers_i <- bagplot_i$pxy.outlier
-    indx_i <- which(apply(df_i, 1, function(x) all(x %in% outliers_i)))
+    indx_i <-
+      which(apply(df_i, 1, function(x)
+        all(x %in% outliers_i)))
     ind_outlying_obs <- append(ind_outlying_obs, indx_i)
   }
 }
 
-#bagplot_matrix <- aplpack::bagplot.pairs(df_3)
 ```
 
 
@@ -66,13 +95,11 @@ for (i in 1:5) {
     for (outlier in top_outliers) {
       for (k in 1:length(indx_i)) {
         if (indx_i[k] == outlier) {
-          points(
-            df_i[indx_i[k], 1],
-            df_i[indx_i[k], 2],
-            col = outlier_colors[as.character(outlier)],
-            pch = 19,
-            cex = 1.5
-          )
+          points(df_i[indx_i[k], 1],
+                 df_i[indx_i[k], 2],
+                 col = outlier_colors[as.character(outlier)],
+                 pch = 19,
+                 cex = 1.5)
         }
       }
     }

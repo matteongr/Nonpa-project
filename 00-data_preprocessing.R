@@ -7,7 +7,7 @@ rm(list = ls())
 library(sf)
 
 # Import the necessary datasets
-raw_data <- read.csv('Data/PruebasSaber_2021_12.csv')
+raw_data <- read.csv('Data/data_2021.csv')
 colegios <- read.csv('Data/Colegios.csv')
 aprobacion <- read.csv('Data/taprobacionofupz.csv')
 desercion <- read.csv("Data/tdesercionofupz.csv")

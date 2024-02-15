@@ -1,6 +1,15 @@
 rm(list = ls())
 
 
+# set directory
+# Get the path to the directory containing the current script
+# Set the working directory to the current directory
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+# load libraries
+library(sf)
+library(ggplot2)
+
 # load data
 extended_data <- read.csv("Data/extended_data_clean.csv")
 final_data <-
@@ -92,10 +101,10 @@ wilcox.test(diff_2021_2022, mu = 0, alternative = "two.sided")
 
 #most improved schools
 top_schools <-
-  final_data[order(diff_tot, decreasing = TRUE),][1:20,]
+  final_data[order(diff_tot, decreasing = TRUE), ][1:20, ]
 
 #most worsened schools
-bad_schools <- final_data[order(diff_tot, decreasing = F),][1:20,]
+bad_schools <- final_data[order(diff_tot, decreasing = F), ][1:20, ]
 
 
 # plot the change in puntaje for the most improved and worsened schools
@@ -134,7 +143,7 @@ for (i in 1:nrow(bad_schools)) {
         y = bad_schools[i, 3:6],
         col = rainbow(nrow(bad_schools))[i])
 }
-par(mfrow = c(1,1))
+par(mfrow = c(1, 1))
 
 
 #plot top schools and bad schools on the map with points big according to the difference in puntaje
@@ -169,7 +178,6 @@ bogota.map +
 
 
 # getting the upz code in our dataset
-extended_data <- read.csv("Data/Extended_data_clean.csv")
 colegios <- read.csv("Data/colegios.csv")
 
 # Initialize a vector to store the values of upz
@@ -255,7 +263,9 @@ plot(
 for (i in 1:length(levels(extended_data$upz))) {
   lines(x = years,
         y = colMeans(final_data[extended_data$upz == levels(extended_data$upz)[i], 3:6]),
-        col = rainbow(length(levels(extended_data$upz)))[i])
+        col = rainbow(length(levels(
+          extended_data$upz
+        )))[i])
 }
 
 
@@ -290,5 +300,3 @@ plot(
   main = "Average puntaje per upz",
   pch = 19
 )
-
-

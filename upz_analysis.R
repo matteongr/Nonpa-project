@@ -1,5 +1,11 @@
 rm(list = ls())
 
+
+# set directory
+# Get the path to the directory containing the current script
+# Set the working directory to the current directory
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
 # libraries for the script
 library(splines)
 library(ggpubr)
@@ -11,12 +17,6 @@ library(sfdep)
 library(tidyr)
 library(ggplot2)
 library(dplyr)
-
-
-# set directory
-# Get the path to the directory containing the current script
-# Set the working directory to the current directory
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 
 # import the data
@@ -284,7 +284,7 @@ perform_hotspot_analysis <- function(year_data, year) {
              geom_sf(color = "black", lwd = 0.15) +
              scale_fill_gradient2() + # makes the value 0 (random) be the middle
              theme_void() +
-             labs(title = paste("P_Puntaje Spatial Analysis for", year))
+             labs(title = paste("Scores Spatial Analysis for", year))
            
            # Create a new data frame called 'tes_hot_spots"
            classification_plot <- map_hot_spots |>
@@ -323,7 +323,7 @@ perform_hotspot_analysis <- function(year_data, year) {
              scale_fill_brewer(type = "div", palette = 5) +
              theme_void() +
              labs(fill = "Hot Spot Classification",
-                  title = paste("P_Puntaje Hot Spots for", year))
+                  title = paste("Scores Hot Spots for", year))
            
            return(list(cursory_plot, classification_plot, globalG_test_result))
 }

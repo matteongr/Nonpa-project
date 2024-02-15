@@ -36,7 +36,9 @@ data_schools <- read.csv("Data/Extended_data_clean.csv")
 mean_SES <- c()
 for (i in 1:nrow(data_schools)){
   idx <- which(data_bogota$COLE_COD_DANE_SEDE == data_schools$COD_DANE12[i])
-  SES_i <- na.omit(as.numeric(data_bogota$ESTU_INSE_INDIVIDUAL[idx]))
+  INSE <- data_bogota$ESTU_INSE_INDIVIDUAL[idx]
+  INSE <- INSE[which(INSE != "-")]
+  SES_i <- na.omit(as.numeric(INSE))
   mean_SES <- c(mean_SES, mean(SES_i))
 }
 
@@ -125,10 +127,11 @@ library(sf)
 library(ggplot2)
 
 # Import a geojson or shapefile
-map <- read_sf("Data/map.geojson") 
+map <- read_sf("Data/poblacion-upz-bogota.geojson") 
 # potrebbero non essere sufficienti, perché ci sono scuole fuori dal confine della mappa
 bogota.map <- ggplot(map) +
-                geom_sf(fill = "white")
+                geom_sf(fill = "white") +
+                theme_void()
 
 coord <- as.matrix(data_schools[, 3:4])
 
