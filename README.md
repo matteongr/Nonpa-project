@@ -81,14 +81,16 @@ install.packages('https://github.com/rubenfcasal/npsp/releases/download/v0.7-10/
    - Identify worse performing zones
    - Conduct hotspot analysis to find clusters.
 
-3. **Spatial Analysis**:
+4. **Spatial Analysis**:
    - Apply nonparametric statistical methods to explore relationships between school scores and school location.
    - Identify worse performing zones
    - Conduct hotspot analysis to find clusters.
 
-4. **Predictive Analysis**:
+5. **Predictive Analysis**:
    - Create visualizations to communicate insights from the analysis.
    - Interpret the results and provide recommendations for educational policymakers based on the findings.
+
+6. **Conclusions**
 
 
 ## How to Run
