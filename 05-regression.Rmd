@@ -4,7 +4,7 @@ output: html_notebook
 ---
 
 
-```{r}
+```{r, echo = FALSE} 
 library(sf)
 library(ggplot2)
 library(splines)
@@ -63,7 +63,7 @@ df_reg_test <- extended_data[!sampled,]
 ```
 
 ```{r}
-# model using the coordinates (s(x,y) tiene conto anche delle interazioni perché vado a smoothare congiuntamente)
+# model using the coordinates (s(x,y)
 model <- mgcv::gam(P_Puntaje_2021 ~ s(X, Y) + s(EVALUADOS_2021,bs='cr') +
                      s(DENSITY, bs ='cr') + as.factor(CLASE_TIPO) + indiv_SES,
                    data = df_reg_train)
@@ -145,25 +145,3 @@ pred <- predict(model_red, df_reg_test)
 mean(abs(pred - df_reg_test$P_Puntaje_2021))
 sd(abs(pred - df_reg_test$P_Puntaje_2021))
 ```
-
-```{r}
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

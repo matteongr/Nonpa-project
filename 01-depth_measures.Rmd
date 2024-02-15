@@ -69,10 +69,13 @@ sort(table_out)
 ```{r}
 sorted_table <- sort(table_out, decreasing = TRUE)
 top_outliers <- as.numeric(names((sorted_table)[1:5]))
-# Assegna un colore diverso a ciascun outlier selezionato
+
 library(RColorBrewer)
+
+# create a color palette
 color_palette <- brewer.pal(n = 5, name = "Dark2")
-# Crea un vettore di colori per ciascun outlier
+
+# create a named vector with the colors for the top outliers
 outlier_colors <- setNames(color_palette, top_outliers)
 set.seed(2024)
 for (i in 1:5) {

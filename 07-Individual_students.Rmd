@@ -12,7 +12,7 @@ data_bogota <- read.csv("Data/data_students.csv")
 
 We want to see if the SES of peers is influential when taking out the personal SES effect.
 ```{r}
-# Import the schools dataset
+# Import the cleaned dataset
 data_schools <- read.csv("Data/Extended_data_clean.csv")
 
 # Calculate the mean individual SES for each school and add it as a new column
@@ -127,13 +127,3 @@ final_map <- bogota.map +
   theme(legend.position="right", axis.text.x = element_text(size = 7))
 final_map
 ```
-
-
-
-
-
-
-
-
-
-

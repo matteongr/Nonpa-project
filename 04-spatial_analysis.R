@@ -126,7 +126,7 @@ for (i in 2:5) {
 }
 
   
-# gettting the upz with the lowest 25th percentile for each year
+# getting the upz with the lowest 25th percentile for each year
 upz_low_list <- list()
 for (year in 2019:2022) {
   col_index <- year - 2017  # Calculate the column index based on the year
@@ -236,8 +236,8 @@ perform_hotspot_analysis <- function(year_data, year) {
            
            # Create a new data frame called 'tes_hot_spots"
            classification_plot <- map_hot_spots |>
-             # with the columns 'gi' and 'p_folded_sim"
-             # 'p_folded_sim' is the p-value of a folded permutation test
+             # with the columns gi and p_folded_sim
+             # p_folded_sim is the p-value of a folded permutation test
              select(gi, p_folded_sim) |>
              mutate(
                # Add a new column called "classification"
