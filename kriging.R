@@ -123,7 +123,7 @@ legend(
 
 # set random seed
 current_seed <- round(runif(1, 1, 100000), 0)
-set.seed(41608)
+set.seed(current_seed)
 
 # trying to get a sample of my data to reduce singularity
 num_rows <- 150
