@@ -54,10 +54,13 @@ perm_t_test(x.1, x.2)
 ```
 
 ```{r}
-boxplot(list("Public" = x.1, "Private" = x.2),
-        main = "Scores of public vs private schools",
-        xlab = "Type of school",
-        ylab = "Score")
+boxplot(
+  list("Public" = x.1, "Private" = x.2),
+  main = "Scores of public vs private schools",
+  xlab = "Type of school",
+  ylab = "Score",
+  col = c("red", "cyan")
+)
 ```
 We can confirm that the private school perform better than the public ones.
 
@@ -79,7 +82,10 @@ Schools from Calendario B have different distribution than those from Calendario
 boxplot(list("A" = x1, "B" = x2),
         main = "Scores of calendar A vs B schools",
         xlab = "Type of school",
-        ylab = "Score")
+        ylab = "Score",
+        col = c("red", "cyan")
+        )
+
 ```
 
 With the boxplot we can clearly see that calendar B schools perform significantly better than schools from calendar A.

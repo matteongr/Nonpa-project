@@ -32,7 +32,7 @@ new_data <-
     )
   ), by = "COD_DANE12")
 
-data_prova <- new_data[, c("P_Puntaje_2021", "P_Lectura", "P_Matemati", "P_Ciencias", "P_Sociales", "P_Ingles")]
+data_prova <- new_data[, c("P_Lectura", "P_Matemati", "P_Ciencias", "P_Sociales", "P_Ingles", "P_Puntaje_2021")]
 set.seed(2024)
 ind_outlying_obs <- c()
 for (i in 1:5) {
@@ -68,12 +68,12 @@ sort(table_out)
 
 ```{r}
 sorted_table <- sort(table_out, decreasing = TRUE)
-top_outliers <- as.numeric(names((sorted_table)[1:5]))
+top_outliers <- as.numeric(names((sorted_table)[1:4]))
 
 library(RColorBrewer)
 
 # create a color palette
-color_palette <- brewer.pal(n = 5, name = "Dark2")
+color_palette <- brewer.pal(n = 4, name = "Dark2")
 
 # create a named vector with the colors for the top outliers
 outlier_colors <- setNames(color_palette, top_outliers)
